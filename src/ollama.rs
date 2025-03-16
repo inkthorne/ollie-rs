@@ -3,16 +3,16 @@ use std::net::SocketAddr;
 use std::str::FromStr;
 
 //============================================================================
-// OllamaRequest
+// OllamaGenerateRequest
 //============================================================================
 /// Represents a request to the Ollama API
 ///
 /// This struct is used to build requests for the Ollama API using a fluent interface.
-pub struct OllamaRequest {
+pub struct OllamaGenerateRequest {
     value: serde_json::Value,
 }
 
-impl OllamaRequest {
+impl OllamaGenerateRequest {
     /// Creates a new empty Ollama request
     ///
     /// ## Returns
@@ -132,6 +132,15 @@ impl Default for Ollama {
 }
 
 impl Ollama {
+    /// Creates a new Ollama client with the specified server address
+    ///
+    /// ## Arguments
+    ///
+    /// * `server_addr` - Socket address (IP and port) where the Ollama server is running
+    ///
+    /// ## Returns
+    ///
+    /// A new `Ollama` instance connected to the specified server address
     pub fn new(server_addr: SocketAddr) -> Self {
         Self {
             server_addr,
@@ -139,11 +148,32 @@ impl Ollama {
         }
     }
 
+    /// Returns the server address this client is configured to connect to
+    ///
+    /// ## Returns
+    ///
+    /// A reference to the socket address where the Ollama server is running
     pub fn server_addr(&self) -> &SocketAddr {
         &self.server_addr
     }
 
-    pub async fn request(&self, prompt: &OllamaRequest) -> Result<String, reqwest::Error> {
+    /// Sends a generation request to the Ollama server and returns the response
+    ///
+    /// ## Arguments
+    ///
+    /// * `prompt` - The request containing model, prompt text, and other generation parameters
+    ///
+    /// ## Returns
+    ///
+    /// * `Ok(String)` - The generated text response from the model
+    /// * `Err(reqwest::Error)` - Any network or server errors that occurred
+    ///
+    /// ## Note
+    ///
+    /// This function handles streaming responses by collecting chunks until completion.
+    /// For streamed responses, it parses each chunk as a JSON object and concatenates
+    /// the response text together.
+    pub async fn generate(&self, prompt: &OllamaGenerateRequest) -> Result<String, reqwest::Error> {
         let url = format!("http://{}/api/generate", self.server_addr);
         let mut response = self
             .http_client
@@ -187,14 +217,14 @@ mod tests {
     #[tokio::test]
     async fn test_json_request() {
         let ollama = Ollama::default();
-        let mut prompt = OllamaRequest::new();
+        let mut prompt = OllamaGenerateRequest::new();
         prompt
             .model("gemma3:4b".to_string())
             .prompt("What is the capital of France? respond in json".to_string())
             .stream(true)
             .format("json".to_string());
 
-        let result = ollama.request(&prompt).await;
+        let result = ollama.generate(&prompt).await;
 
         if let Err(ref e) = result {
             println!("Error in request: {:?}", e);
