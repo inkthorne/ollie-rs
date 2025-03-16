@@ -132,10 +132,10 @@ mod tests {
         let ollama = Ollama::default();
         let mut prompt = OllamaRequest::new();
         prompt
-            .model("gemma3:4b".to_string())
-            .prompt("What is the capital of France? respond in json".to_string())
+            .model("gemma3:1b")
+            .prompt("What is the capital of France? respond in json")
             .stream(true)
-            .format("json".to_string());
+            .format("json");
 
         let result = ollama.generate(&prompt).await;
 

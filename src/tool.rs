@@ -99,7 +99,7 @@ mod tests {
     /// - Required and optional parameters are stored correctly
     /// - The JSON structure is properly formed with properties and required arrays
     #[test]
-    fn test_ollama_function_parameters() {
+    fn test_json_function_parameters() {
         // Create a new instance of OllamaFunctionParameters
         let mut params = OllamaFunctionParameters::new();
 
@@ -140,7 +140,7 @@ mod tests {
     /// - The JSON structure correctly contains all function details
     /// - Both required and optional parameters are properly structured
     #[test]
-    fn test_ollama_function() {
+    fn test_json_function() {
         // Create a new function for getting weather
         let mut weather_function = OllamaFunction::new(
             "get_current_weather",
@@ -227,7 +227,7 @@ mod tests {
     /// - Each function maintains its structure with parameters
     /// - The JSON structure is properly formed as an array of functions
     #[test]
-    fn test_ollama_tools() {
+    fn test_json_tools() {
         // Create a new OllamaTools instance
         let mut tools = OllamaTools::new();
 

@@ -5,7 +5,7 @@
 ///
 /// This struct is used to build requests for the Ollama API using a fluent interface.
 pub struct OllamaRequest {
-    value: serde_json::Value,
+    request: serde_json::Value,
 }
 
 impl OllamaRequest {
@@ -16,7 +16,7 @@ impl OllamaRequest {
     /// A new `OllamaRequest` instance with default values
     pub fn new() -> Self {
         Self {
-            value: serde_json::Value::default(),
+            request: serde_json::Value::default(),
         }
     }
 
@@ -29,8 +29,8 @@ impl OllamaRequest {
     /// ## Returns
     ///
     /// A mutable reference to self for method chaining
-    pub fn model(&mut self, model: String) -> &mut Self {
-        self.value["model"] = serde_json::Value::String(model);
+    pub fn model(&mut self, model: &str) -> &mut Self {
+        self.request["model"] = model.into();
         self
     }
 
@@ -43,8 +43,8 @@ impl OllamaRequest {
     /// ## Returns
     ///
     /// A mutable reference to self for method chaining
-    pub fn prompt(&mut self, prompt: String) -> &mut Self {
-        self.value["prompt"] = serde_json::Value::String(prompt);
+    pub fn prompt(&mut self, prompt: &str) -> &mut Self {
+        self.request["prompt"] = prompt.into();
         self
     }
 
@@ -57,8 +57,8 @@ impl OllamaRequest {
     /// ## Returns
     ///
     /// A mutable reference to self for method chaining
-    pub fn stream(&mut self, prompt: bool) -> &mut Self {
-        self.value["stream"] = serde_json::Value::Bool(prompt);
+    pub fn stream(&mut self, stream: bool) -> &mut Self {
+        self.request["stream"] = stream.into();
         self
     }
 
@@ -71,8 +71,8 @@ impl OllamaRequest {
     /// ## Returns
     ///
     /// A mutable reference to self for method chaining
-    pub fn format(&mut self, prompt: String) -> &mut Self {
-        self.value["format"] = serde_json::Value::String(prompt);
+    pub fn format(&mut self, format: &str) -> &mut Self {
+        self.request["format"] = format.into();
         self
     }
 
@@ -82,6 +82,6 @@ impl OllamaRequest {
     ///
     /// A reference to the internal JSON value
     pub fn as_json(&self) -> &serde_json::Value {
-        &self.value
+        &self.request
     }
 }
