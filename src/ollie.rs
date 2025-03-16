@@ -1,13 +1,101 @@
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde::Deserialize;
 use std::net::SocketAddr;
 use std::str::FromStr;
 
-#[derive(Serialize)]
-struct GenerateRequest {
-    model: String,
-    prompt: String,
-    stream: bool,
+//============================================================================
+// OllamaRequest
+//============================================================================
+/// Represents a request to the Ollama API
+///
+/// This struct is used to build requests for the Ollama API using a fluent interface.
+pub struct OllamaRequest {
+    value: serde_json::Value,
+}
+
+impl OllamaRequest {
+    /// Creates a new empty Ollama request
+    ///
+    /// # Returns
+    ///
+    /// A new `OllamaRequest` instance with default values
+    pub fn new() -> Self {
+        Self {
+            value: serde_json::Value::default(),
+        }
+    }
+
+    /// Sets the model to use for the request
+    ///
+    /// # Arguments
+    ///
+    /// * `model` - The name of the model to use (e.g., "gemma3:4b", "llama3")
+    ///
+    /// # Returns
+    ///
+    /// A mutable reference to self for method chaining
+    pub fn model(&mut self, model: String) -> &mut Self {
+        self.value["model"] = serde_json::Value::String(model);
+        self
+    }
+
+    /// Sets the prompt text for the request
+    ///
+    /// # Arguments
+    ///
+    /// * `prompt` - The prompt text to send to the model
+    ///
+    /// # Returns
+    ///
+    /// A mutable reference to self for method chaining
+    pub fn prompt(&mut self, prompt: String) -> &mut Self {
+        self.value["prompt"] = serde_json::Value::String(prompt);
+        self
+    }
+
+    /// Sets whether the response should be streamed
+    ///
+    /// # Arguments
+    ///
+    /// * `prompt` - Boolean indicating if the response should be streamed
+    ///
+    /// # Returns
+    ///
+    /// A mutable reference to self for method chaining
+    pub fn stream(&mut self, prompt: bool) -> &mut Self {
+        self.value["stream"] = serde_json::Value::Bool(prompt);
+        self
+    }
+
+    /// Sets the requested output format
+    ///
+    /// # Arguments
+    ///
+    /// * `prompt` - The format to request (e.g., "json")
+    ///
+    /// # Returns
+    ///
+    /// A mutable reference to self for method chaining
+    pub fn format(&mut self, prompt: String) -> &mut Self {
+        self.value["format"] = serde_json::Value::String(prompt);
+        self
+    }
+
+    /// Returns the underlying JSON value of the request
+    ///
+    /// # Returns
+    ///
+    /// A reference to the internal JSON value
+    pub fn get_value(&self) -> &serde_json::Value {
+        &self.value
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct OllamaResponseChunk {
+    pub model: String,
+    // pub created_at: String,
+    pub response: String,
+    pub done: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -26,11 +114,14 @@ pub struct GenerateResponse {
     // pub eval_count_duration: u64,
 }
 
-pub struct Ollie {
+//============================================================================
+// Ollama
+//============================================================================
+pub struct Ollama {
     server_addr: SocketAddr,
 }
 
-impl Default for Ollie {
+impl Default for Ollama {
     fn default() -> Self {
         Self {
             server_addr: SocketAddr::from_str("127.0.0.1:11434").unwrap(),
@@ -38,7 +129,7 @@ impl Default for Ollie {
     }
 }
 
-impl Ollie {
+impl Ollama {
     pub fn new(server_addr: SocketAddr) -> Self {
         Self { server_addr }
     }
@@ -47,45 +138,50 @@ impl Ollie {
         &self.server_addr
     }
 
-    pub async fn generate(
-        &self,
-        model: String,
-        prompt: String,
-    ) -> Result<GenerateResponse, reqwest::Error> {
+    pub async fn request(&self, prompt: &OllamaRequest) -> Result<String, reqwest::Error> {
         let url = format!("http://{}/api/generate", self.server_addr);
         let client = reqwest::Client::new();
-        let request = GenerateRequest {
-            model,
-            prompt,
-            stream: false,
-        };
-        let response = client.post(&url).json(&request).send().await?;
+        let mut response = client.post(&url).json(prompt.get_value()).send().await?;
+        let mut output = String::new();
 
-        // Parse the response into a strongly-typed GenerateResponse
-        let generate_response = response.json::<GenerateResponse>().await?;
-        Ok(generate_response)
+        while let Some(chunk) = response.chunk().await? {
+            let chunk: OllamaResponseChunk = serde_json::from_slice(&chunk).unwrap();
+            if chunk.done {
+                break;
+            }
+            output.push_str(&chunk.response);
+        }
+
+        Ok(output)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::Value;
 
     #[tokio::test]
-    async fn test_generate() {
-        let ollie = Ollie::default();
-        let result = ollie
-            .generate(
-                "gemma3:4b".to_string(),
-                "What is the capital of France?".to_string(),
-            )
-            .await;
+    async fn test_json_request() {
+        let ollama = Ollama::default();
+        let mut prompt = OllamaRequest::new();
+        prompt
+            .model("gemma3:4b".to_string())
+            .prompt("What is the capital of France? respond in json".to_string())
+            .stream(true)
+            .format("json".to_string());
+
+        let result = ollama.request(&prompt).await;
 
         if let Err(ref e) = result {
-            println!("Error in generate: {:?}", e);
+            println!("Error in request: {:?}", e);
         }
         assert!(result.is_ok());
-        let response = result.unwrap();
-        println!("{:?}", response);
+
+        // Parse the string response into a JSON Value
+        let response_str = result.unwrap();
+        println!("response string: {}", response_str);
+        let json_value: Value = serde_json::from_str(&response_str).expect("Failed to parse JSON");
+        println!("response json: {:?}", json_value);
     }
 }
