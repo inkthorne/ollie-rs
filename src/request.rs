@@ -78,6 +78,18 @@ impl OllamaRequest {
         self
     }
 
+    /// Returns whether streaming is enabled for this request
+    ///
+    /// ## Returns
+    ///
+    /// `true` if streaming is enabled, `false` otherwise
+    pub fn is_streamed(&self) -> bool {
+        self.request
+            .get("stream")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true)
+    }
+
     /// Adds tools to the request
     ///
     /// ## Arguments
@@ -109,6 +121,27 @@ impl OllamaRequest {
 mod tests {
     use super::*;
     use crate::tool::{OllamaFunction, OllamaFunctionParameters};
+
+    #[test]
+    fn test_is_streamed() {
+        let mut request = OllamaRequest::new();
+        assert!(
+            request.is_streamed(),
+            "New request should be streamed by default"
+        );
+
+        request.stream(false);
+        assert!(
+            !request.is_streamed(),
+            "Request should not be streamed after disabling"
+        );
+
+        request.stream(true);
+        assert!(
+            request.is_streamed(),
+            "Request should be streamed after enabling"
+        );
+    }
 
     /// Tests creating OllamaRequest objects and verifying their JSON representation
     ///

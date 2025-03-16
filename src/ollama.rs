@@ -75,6 +75,7 @@ impl Ollama {
     /// ## Arguments
     ///
     /// * `prompt` - The request containing model, prompt text, and other generation parameters
+    /// * `response_handler` - Callback function that processes each JSON response chunk
     ///
     /// ## Returns
     ///
@@ -86,7 +87,14 @@ impl Ollama {
     /// This function handles streaming responses by collecting chunks until completion.
     /// For streamed responses, it parses each chunk as a JSON object and concatenates
     /// the response text together.
-    pub async fn generate(&self, prompt: &OllamaRequest) -> Result<String, reqwest::Error> {
+    pub async fn generate<F>(
+        &self,
+        prompt: &OllamaRequest,
+        mut response_handler: F,
+    ) -> Result<String, reqwest::Error>
+    where
+        F: FnMut(serde_json::Value),
+    {
         let url = format!("http://{}/api/generate", self.server_addr);
         let mut response = self
             .http_client
@@ -95,49 +103,53 @@ impl Ollama {
             .send()
             .await?;
 
-        let mut output = String::new();
-        let mut chunk_bytes = Vec::<u8>::new();
+        let mut accumulated_response = String::new();
 
         while let Some(http_chunk) = response.chunk().await? {
-            chunk_bytes.extend_from_slice(&http_chunk);
-
-            // Use the OllamaResponseChunk struct for proper deserialization
-            match serde_json::from_slice::<OllamaResponseChunk>(&chunk_bytes) {
-                Ok(chunk) => {
-                    if chunk.done {
-                        break;
+            match serde_json::from_slice::<serde_json::Value>(&http_chunk) {
+                Ok(json_chunk) => {
+                    if let Some(response_chunk) =
+                        json_chunk.get("response").and_then(|r| r.as_str())
+                    {
+                        accumulated_response.push_str(response_chunk);
                     }
-                    output.push_str(&chunk.response);
-                    chunk_bytes.clear();
+                    response_handler(json_chunk);
                 }
                 Err(_) => {
-                    // If we can't parse a complete JSON object yet, continue collecting chunks
-                    println!("chunk_bytes: {}", String::from_utf8_lossy(&chunk_bytes));
                     continue;
                 }
             }
         }
 
-        Ok(output)
+        Ok(accumulated_response)
     }
 }
 
+//============================================================================
+// TESTS
+//============================================================================
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tool::{OllamaFunction, OllamaFunctionParameters, OllamaTools};
     use serde_json::Value;
 
     #[tokio::test]
-    async fn test_json_request() {
+    async fn test_generate_request1() {
         let ollama = Ollama::default();
-        let mut prompt = OllamaRequest::new();
-        prompt
+        let mut request = OllamaRequest::new();
+        request
             .model("gemma3:1b")
             .prompt("What is the capital of France? respond in json")
-            .stream(true)
+            .stream(false)
             .format("json");
 
-        let result = ollama.generate(&prompt).await;
+        let result = ollama
+            .generate(&request, |response| {
+                let pretty = serde_json::to_string_pretty(&response).unwrap();
+                println!("response: {}", pretty);
+            })
+            .await;
 
         if let Err(ref e) = result {
             println!("Error in request: {:?}", e);
@@ -149,5 +161,64 @@ mod tests {
         println!("response string: {}", response_str);
         let json_value: Value = serde_json::from_str(&response_str).expect("Failed to parse JSON");
         println!("response json: {:?}", json_value);
+    }
+
+    #[tokio::test]
+    async fn test_generate_request_with_tools() {
+        // Create a new Ollama client with default settings
+        let ollama = Ollama::default();
+
+        // Create the tools collection
+        let mut tools = OllamaTools::new();
+
+        // Create a search function for retrieving information
+        let mut temperature_function = OllamaFunction::new(
+            "get_temperature",
+            "Gets the current temperature for a location.",
+        );
+
+        // Add parameters to the function
+        let mut params = OllamaFunctionParameters::new();
+        params.parameter(
+            "location",
+            "string",
+            "the location to get the temperature for",
+            true,
+        );
+        temperature_function.parameters(params);
+        tools.add_function(temperature_function);
+
+        // Create the request with a prompt that would trigger tool usage
+        let mut request = OllamaRequest::new();
+        request
+            .model("gemma3:4b")
+            .prompt("What is the current temperature in Seattle? Please use your tools & respond in JSON.")
+            .stream(true)
+            .tools(&tools);
+
+        // Generate a response using the request with tools
+        let result = ollama
+            .generate(&request, |response| {
+                let pretty = serde_json::to_string_pretty(&response).unwrap();
+                println!("response: {}", pretty);
+            })
+            .await;
+
+        // Verify the request was successful
+        if let Err(ref e) = result {
+            println!("Error in request with tools: {:?}", e);
+        }
+        assert!(result.is_ok());
+
+        // Check the response (actual verification would depend on the Ollama instance)
+        let response_str = result.unwrap();
+        println!("Tool response: {}", response_str);
+
+        // Note: In a real test with a mocked Ollama server, we would verify that:
+        // 1. The tool was called with the appropriate parameters
+        // 2. The response contained the expected tool call information
+        // 3. The model handled the tool response correctly
+
+        // For now, just printing the response for manual inspection
     }
 }
