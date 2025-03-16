@@ -83,6 +83,15 @@ impl OllamaTools {
         self.tools.as_array_mut().unwrap().push(function.function);
         self
     }
+
+    /// Returns the underlying JSON value of the tools
+    ///
+    /// ## Returns
+    ///
+    /// A reference to the internal JSON value
+    pub fn as_json(&self) -> &serde_json::Value {
+        &self.tools
+    }
 }
 
 //============================================================================
