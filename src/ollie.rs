@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::net::SocketAddr;
 use std::str::FromStr;
 
@@ -6,11 +7,23 @@ use std::str::FromStr;
 struct GenerateRequest {
     model: String,
     prompt: String,
+    stream: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct GenerateResponse {
+    pub model: String,
+    pub created_at: String,
     pub response: String,
+    pub done: bool,
+    pub done_reason: String,
+    pub context: Vec<u32>,
+    pub total_duration: u64,
+    pub load_duration: u64,
+    pub prompt_eval_count: u32,
+    // pub prompt_eval_count_duration: u64,
+    pub eval_count: u32,
+    // pub eval_count_duration: u64,
 }
 
 pub struct Ollie {
@@ -34,19 +47,23 @@ impl Ollie {
         &self.server_addr
     }
 
-    pub async fn generate(&self, model: String, prompt: String) -> Result<String, reqwest::Error> {
+    pub async fn generate(
+        &self,
+        model: String,
+        prompt: String,
+    ) -> Result<GenerateResponse, reqwest::Error> {
         let url = format!("http://{}/api/generate", self.server_addr);
         let client = reqwest::Client::new();
-        let request = GenerateRequest { model, prompt };
+        let request = GenerateRequest {
+            model,
+            prompt,
+            stream: false,
+        };
         let response = client.post(&url).json(&request).send().await?;
-        let text = response.text().await?;
-        println!("Text: {:?}", text);
 
-        return Ok(text);
-        /*
-        let json_response = response.json::<GenerateResponse>().await?;
-        Ok(json_response)
-        */
+        // Parse the response into a strongly-typed GenerateResponse
+        let generate_response = response.json::<GenerateResponse>().await?;
+        Ok(generate_response)
     }
 }
 
@@ -64,8 +81,11 @@ mod tests {
             )
             .await;
 
+        if let Err(ref e) = result {
+            println!("Error in generate: {:?}", e);
+        }
         assert!(result.is_ok());
         let response = result.unwrap();
-        assert!(!response.is_empty());
+        println!("{:?}", response);
     }
 }
