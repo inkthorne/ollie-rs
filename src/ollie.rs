@@ -15,7 +15,7 @@ pub struct OllamaRequest {
 impl OllamaRequest {
     /// Creates a new empty Ollama request
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// A new `OllamaRequest` instance with default values
     pub fn new() -> Self {
@@ -26,11 +26,11 @@ impl OllamaRequest {
 
     /// Sets the model to use for the request
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `model` - The name of the model to use (e.g., "gemma3:4b", "llama3")
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// A mutable reference to self for method chaining
     pub fn model(&mut self, model: String) -> &mut Self {
@@ -40,11 +40,11 @@ impl OllamaRequest {
 
     /// Sets the prompt text for the request
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `prompt` - The prompt text to send to the model
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// A mutable reference to self for method chaining
     pub fn prompt(&mut self, prompt: String) -> &mut Self {
@@ -54,11 +54,11 @@ impl OllamaRequest {
 
     /// Sets whether the response should be streamed
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `prompt` - Boolean indicating if the response should be streamed
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// A mutable reference to self for method chaining
     pub fn stream(&mut self, prompt: bool) -> &mut Self {
@@ -68,11 +68,11 @@ impl OllamaRequest {
 
     /// Sets the requested output format
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
     /// * `prompt` - The format to request (e.g., "json")
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// A mutable reference to self for method chaining
     pub fn format(&mut self, prompt: String) -> &mut Self {
@@ -82,10 +82,10 @@ impl OllamaRequest {
 
     /// Returns the underlying JSON value of the request
     ///
-    /// # Returns
+    /// ## Returns
     ///
     /// A reference to the internal JSON value
-    pub fn get_value(&self) -> &serde_json::Value {
+    pub fn as_json(&self) -> &serde_json::Value {
         &self.value
     }
 }
@@ -119,19 +119,24 @@ pub struct GenerateResponse {
 //============================================================================
 pub struct Ollama {
     server_addr: SocketAddr,
+    http_client: reqwest::Client,
 }
 
 impl Default for Ollama {
     fn default() -> Self {
         Self {
             server_addr: SocketAddr::from_str("127.0.0.1:11434").unwrap(),
+            http_client: reqwest::Client::new(),
         }
     }
 }
 
 impl Ollama {
     pub fn new(server_addr: SocketAddr) -> Self {
-        Self { server_addr }
+        Self {
+            server_addr,
+            http_client: reqwest::Client::new(),
+        }
     }
 
     pub fn server_addr(&self) -> &SocketAddr {
@@ -140,16 +145,33 @@ impl Ollama {
 
     pub async fn request(&self, prompt: &OllamaRequest) -> Result<String, reqwest::Error> {
         let url = format!("http://{}/api/generate", self.server_addr);
-        let client = reqwest::Client::new();
-        let mut response = client.post(&url).json(prompt.get_value()).send().await?;
-        let mut output = String::new();
+        let mut response = self
+            .http_client
+            .post(&url)
+            .json(prompt.as_json())
+            .send()
+            .await?;
 
-        while let Some(chunk) = response.chunk().await? {
-            let chunk: OllamaResponseChunk = serde_json::from_slice(&chunk).unwrap();
-            if chunk.done {
-                break;
+        let mut output = String::new();
+        let mut chunk_bytes = Vec::<u8>::new();
+
+        while let Some(http_chunk) = response.chunk().await? {
+            chunk_bytes.extend_from_slice(&http_chunk);
+
+            // Use the OllamaResponseChunk struct for proper deserialization
+            match serde_json::from_slice::<OllamaResponseChunk>(&chunk_bytes) {
+                Ok(chunk) => {
+                    if chunk.done {
+                        break;
+                    }
+                    output.push_str(&chunk.response);
+                    chunk_bytes.clear();
+                }
+                Err(_) => {
+                    // If we can't parse a complete JSON object yet, continue collecting chunks
+                    continue;
+                }
             }
-            output.push_str(&chunk.response);
         }
 
         Ok(output)
