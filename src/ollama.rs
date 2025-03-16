@@ -169,6 +169,7 @@ impl Ollama {
                 }
                 Err(_) => {
                     // If we can't parse a complete JSON object yet, continue collecting chunks
+                    println!("chunk_bytes: {}", String::from_utf8_lossy(&chunk_bytes));
                     continue;
                 }
             }
