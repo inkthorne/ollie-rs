@@ -3,16 +3,16 @@ use std::net::SocketAddr;
 use std::str::FromStr;
 
 //============================================================================
-// OllamaGenerateRequest
+// OllamaRequest
 //============================================================================
 /// Represents a request to the Ollama API
 ///
 /// This struct is used to build requests for the Ollama API using a fluent interface.
-pub struct OllamaGenerateRequest {
+pub struct OllamaRequest {
     value: serde_json::Value,
 }
 
-impl OllamaGenerateRequest {
+impl OllamaRequest {
     /// Creates a new empty Ollama request
     ///
     /// ## Returns
@@ -173,7 +173,7 @@ impl Ollama {
     /// This function handles streaming responses by collecting chunks until completion.
     /// For streamed responses, it parses each chunk as a JSON object and concatenates
     /// the response text together.
-    pub async fn generate(&self, prompt: &OllamaGenerateRequest) -> Result<String, reqwest::Error> {
+    pub async fn generate(&self, prompt: &OllamaRequest) -> Result<String, reqwest::Error> {
         let url = format!("http://{}/api/generate", self.server_addr);
         let mut response = self
             .http_client
@@ -217,7 +217,7 @@ mod tests {
     #[tokio::test]
     async fn test_json_request() {
         let ollama = Ollama::default();
-        let mut prompt = OllamaGenerateRequest::new();
+        let mut prompt = OllamaRequest::new();
         prompt
             .model("gemma3:4b".to_string())
             .prompt("What is the capital of France? respond in json".to_string())
