@@ -75,15 +75,72 @@ impl Ollama {
     pub async fn generate<F>(
         &self,
         prompt: &OllamaRequest,
-        mut response_handler: F,
+        response_handler: F,
     ) -> Result<(), reqwest::Error>
     where
         F: FnMut(OllamaResponse),
     {
         let url = format!("http://{}/api/generate", self.server_addr);
+        self.send_request(&url, prompt, response_handler).await
+    }
+
+    /// Sends a chat request to the Ollama server and returns the response
+    ///
+    /// ## Arguments
+    ///
+    /// * `prompt` - The request containing model, messages, and other chat parameters
+    /// * `response_handler` - Callback function that processes each JSON response chunk
+    ///
+    /// ## Returns
+    ///
+    /// * `Ok(())` - If the request completed successfully
+    /// * `Err(reqwest::Error)` - Any network or server errors that occurred
+    ///
+    /// ## Note
+    ///
+    /// This function is similar to `generate` but uses the chat API endpoint.
+    /// It handles streaming responses by collecting chunks until completion.
+    pub async fn chat<F>(
+        &self,
+        prompt: &OllamaRequest,
+        response_handler: F,
+    ) -> Result<(), reqwest::Error>
+    where
+        F: FnMut(OllamaResponse),
+    {
+        let url = format!("http://{}/api/chat", self.server_addr);
+        self.send_request(&url, prompt, response_handler).await
+    }
+
+    /// Sends a request to a specific Ollama API endpoint and processes the response
+    ///
+    /// ## Arguments
+    ///
+    /// * `url` - The complete URL for the API endpoint
+    /// * `prompt` - The request containing model, prompt text, and other parameters
+    /// * `response_handler` - Callback function that processes each JSON response chunk
+    ///
+    /// ## Returns
+    ///
+    /// * `Ok(())` - If the request completed successfully
+    /// * `Err(reqwest::Error)` - Any network or server errors that occurred
+    ///
+    /// ## Note
+    ///
+    /// This function is similar to `generate` but allows specifying the API endpoint URL directly.
+    /// It handles streaming responses by collecting chunks until completion.
+    pub async fn send_request<F>(
+        &self,
+        url: &str,
+        prompt: &OllamaRequest,
+        mut response_handler: F,
+    ) -> Result<(), reqwest::Error>
+    where
+        F: FnMut(OllamaResponse),
+    {
         let mut response = self
             .http_client
-            .post(&url)
+            .post(url)
             .json(prompt.as_json())
             .send()
             .await?;
@@ -109,7 +166,10 @@ impl Ollama {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tool::{OllamaFunction, OllamaFunctionParameters, OllamaTools};
+    use crate::{
+        message::OllamaMessage,
+        tool::{OllamaFunction, OllamaFunctionParameters, OllamaTools},
+    };
 
     /// Tests basic text generation functionality with the Ollama API
     ///
@@ -147,6 +207,44 @@ mod tests {
         println!("accumulated_response: {}", accumulated_response);
     }
 
+    /// Tests basic chat functionality with the Ollama API
+    ///
+    /// This test:
+    /// 1. Creates a default Ollama client
+    /// 2. Sends a simple prompt asking about France's capital
+    /// 3. Configures the response to be in JSON format
+    /// 4. Verifies that the request completes successfully
+    #[tokio::test]
+    async fn test_chat_request1() {
+        let ollama = Ollama::default();
+        let mut message = OllamaMessage::new();
+        message
+            .role("user")
+            .content("can you explain briefly, why is the sky blue?");
+
+        let mut request = OllamaRequest::new();
+        request
+            .model("gemma3:1b")
+            .stream(true)
+            .push_message(&message);
+
+        let mut accumulated_content = String::new();
+        let result = ollama
+            .chat(&request, |response| {
+                response.content().map(|c| accumulated_content.push_str(c));
+                // println!("response: {}", response.to_string_pretty());
+            })
+            .await;
+
+        if let Err(ref e) = result {
+            println!("Error in request: {:?}", e);
+        }
+        assert!(result.is_ok());
+
+        // Print the accumulated response for manual verification
+        println!("accumulated_content: {}", accumulated_content);
+    }
+
     /// Tests the Ollama API's function calling capabilities using custom tools
     ///
     /// This test:
@@ -155,7 +253,7 @@ mod tests {
     /// 3. Sends a prompt that should trigger tool usage
     /// 4. Verifies the request processes successfully with tool integration
     #[tokio::test]
-    async fn test_generate_request_with_tools() {
+    async fn test_chat_request_with_tools() {
         // Create a new Ollama client with default settings
         let ollama = Ollama::default();
 
@@ -164,8 +262,8 @@ mod tests {
 
         // Create a search function for retrieving information
         let mut temperature_function = OllamaFunction::new(
-            "get_temperature",
-            "Gets the current temperature for a location.",
+            "get_current_weather",
+            "Gets the current weather for a location.",
         );
 
         // Add parameters to the function
@@ -179,22 +277,28 @@ mod tests {
         temperature_function.parameters(params);
         tools.add_function(temperature_function);
 
+        let mut message = OllamaMessage::new();
+        message
+            .role("user")
+            .content("What is the current weather in Paris?");
+
         // Create the request with a prompt that would trigger tool usage
         let mut request = OllamaRequest::new();
         request
-            .model("gemma3:4b")
-            .prompt("What is the current temperature in Seattle? Please use your tools & respond in JSON.")
-            .stream(true)
-            .tools(&tools);
+            .model("llama3.2")
+            .stream(false)
+            .tools(&tools)
+            .push_message(&message);
+        println!("---\nrequest: {}", request.to_string_pretty());
 
         // Generate a response using the request with tools
         let mut accumulated_response = String::new();
         let result = ollama
-            .generate(&request, |response| {
+            .chat(&request, |response| {
                 response
                     .response()
                     .map(|r| accumulated_response.push_str(r));
-                println!("response: {}", response.to_string_pretty());
+                println!("---\nresponse: {}", response.to_string_pretty());
             })
             .await;
 

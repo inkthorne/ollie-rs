@@ -37,6 +37,10 @@ impl OllamaResponse {
         self.response.get("done")?.as_bool()
     }
 
+    pub fn content(&self) -> Option<&str> {
+        self.response.get("message")?.get("content")?.as_str()
+    }
+
     pub fn response(&self) -> Option<&str> {
         self.response.get("response")?.as_str()
     }

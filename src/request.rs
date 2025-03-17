@@ -1,3 +1,4 @@
+use crate::message::{OllamaMessage, OllamaMessages};
 use crate::tool::OllamaTools;
 
 //============================================================================
@@ -20,6 +21,23 @@ impl OllamaRequest {
         Self {
             request: serde_json::Value::default(),
         }
+    }
+
+    pub fn messages(&mut self, messages: OllamaMessages) -> &mut Self {
+        self.request["messages"] = messages.as_json().clone();
+        self
+    }
+
+    pub fn push_message(&mut self, message: &OllamaMessage) -> &mut Self {
+        if !self.request.as_object().unwrap().contains_key("messages") {
+            self.request["messages"] = serde_json::Value::Array(vec![]);
+        }
+
+        if let Some(messages) = self.request["messages"].as_array_mut() {
+            messages.push(message.as_json().clone());
+        }
+
+        self
     }
 
     /// Sets the model to use for the request
@@ -111,6 +129,10 @@ impl OllamaRequest {
     /// A reference to the internal JSON value
     pub fn as_json(&self) -> &serde_json::Value {
         &self.request
+    }
+
+    pub fn to_string_pretty(&self) -> String {
+        serde_json::to_string_pretty(&self.request).unwrap_or_default()
     }
 }
 
@@ -256,30 +278,39 @@ mod tests {
         // Verify the tools array contains our function
         if let Some(tools_array) = json["tools"].as_array() {
             assert_eq!(tools_array.len(), 1);
-            assert_eq!(tools_array[0]["name"], "get_weather");
-            assert_eq!(
-                tools_array[0]["description"],
-                "Get current weather data for a location"
-            );
 
-            // Verify parameters structure
-            if let Some(params) = tools_array[0]["parameters"].as_object() {
-                assert!(params.contains_key("properties"));
-                assert!(params.contains_key("required"));
+            // Check the type field
+            assert_eq!(tools_array[0]["type"], "function");
 
-                // Verify location parameter
-                let properties = &tools_array[0]["parameters"]["properties"];
-                assert_eq!(properties["location"]["type"], "string");
+            // Access the nested function object
+            if let Some(function) = tools_array[0]["function"].as_object() {
+                assert_eq!(function["name"], "get_weather");
                 assert_eq!(
-                    properties["location"]["description"],
-                    "City and state (e.g., Seattle, WA)"
+                    function["description"],
+                    "Get current weather data for a location"
                 );
 
-                // Verify required parameters
-                let required = &tools_array[0]["parameters"]["required"];
-                assert!(required.as_array().unwrap().contains(&"location".into()));
+                // Verify parameters structure
+                if let Some(params) = function["parameters"].as_object() {
+                    assert!(params.contains_key("properties"));
+                    assert!(params.contains_key("required"));
+
+                    // Verify location parameter
+                    let properties = &function["parameters"]["properties"];
+                    assert_eq!(properties["location"]["type"], "string");
+                    assert_eq!(
+                        properties["location"]["description"],
+                        "City and state (e.g., Seattle, WA)"
+                    );
+
+                    // Verify required parameters
+                    let required = &function["parameters"]["required"];
+                    assert!(required.as_array().unwrap().contains(&"location".into()));
+                } else {
+                    panic!("Expected parameters to be an object");
+                }
             } else {
-                panic!("Expected parameters to be an object");
+                panic!("Expected function to be an object");
             }
         } else {
             panic!("Expected tools to be an array");

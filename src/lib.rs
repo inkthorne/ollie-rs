@@ -1,3 +1,4 @@
+pub mod message;
 pub mod ollama;
 pub mod request;
 pub mod response;

@@ -47,20 +47,23 @@ impl OllamaFunctionParameters {
 // OllamaFunction
 //============================================================================
 pub struct OllamaFunction {
-    function: serde_json::Value,
+    object: serde_json::Value,
 }
 
 impl OllamaFunction {
     pub fn new(name: &str, description: &str) -> Self {
         Self {
-            function: serde_json::json!({
-                "name": name,
-                "description": description,
+            object: serde_json::json!({
+                "type": "function",
+                "function": {
+                    "name": name,
+                    "description": description,
+                }
             }),
         }
     }
     pub fn parameters(&mut self, parameters: OllamaFunctionParameters) -> &mut Self {
-        self.function["parameters"] = parameters.parameters;
+        self.object["function"]["parameters"] = parameters.parameters;
         self
     }
 }
@@ -80,7 +83,7 @@ impl OllamaTools {
     }
 
     pub fn add_function(&mut self, function: OllamaFunction) -> &mut Self {
-        self.tools.as_array_mut().unwrap().push(function.function);
+        self.tools.as_array_mut().unwrap().push(function.object);
         self
     }
 
@@ -178,54 +181,61 @@ mod tests {
         // Print the value of the structure
         println!(
             "---\n{}",
-            serde_json::to_string_pretty(&weather_function.function).unwrap()
+            serde_json::to_string_pretty(&weather_function.object).unwrap()
         );
 
         // Verify the function has the expected structure
-        if let serde_json::Value::Object(function) = &weather_function.function {
-            assert_eq!(function["name"], "get_current_weather");
-            assert_eq!(
-                function["description"],
-                "Get the current weather in a given location"
-            );
+        if let serde_json::Value::Object(obj) = &weather_function.object {
+            assert_eq!(obj["type"], "function");
 
-            // Verify parameters structure
-            if let serde_json::Value::Object(params) = &function["parameters"] {
-                // Check properties
-                if let serde_json::Value::Object(properties) = &params["properties"] {
-                    assert!(properties.contains_key("location"));
-                    assert!(properties.contains_key("format"));
+            // Access the nested function object
+            if let serde_json::Value::Object(function) = &obj["function"] {
+                assert_eq!(function["name"], "get_current_weather");
+                assert_eq!(
+                    function["description"],
+                    "Get the current weather in a given location"
+                );
 
-                    // Verify location details
-                    assert_eq!(properties["location"]["type"], "string");
-                    assert_eq!(
-                        properties["location"]["description"],
-                        "The city and state, e.g., San Francisco, CA"
-                    );
+                // Verify parameters structure
+                if let serde_json::Value::Object(params) = &function["parameters"] {
+                    // Check properties
+                    if let serde_json::Value::Object(properties) = &params["properties"] {
+                        assert!(properties.contains_key("location"));
+                        assert!(properties.contains_key("format"));
 
-                    // Verify format details
-                    assert_eq!(properties["format"]["type"], "string");
-                    assert_eq!(
-                        properties["format"]["description"],
-                        "The temperature unit to use: 'celsius' or 'fahrenheit'"
-                    );
+                        // Verify location details
+                        assert_eq!(properties["location"]["type"], "string");
+                        assert_eq!(
+                            properties["location"]["description"],
+                            "The city and state, e.g., San Francisco, CA"
+                        );
+
+                        // Verify format details
+                        assert_eq!(properties["format"]["type"], "string");
+                        assert_eq!(
+                            properties["format"]["description"],
+                            "The temperature unit to use: 'celsius' or 'fahrenheit'"
+                        );
+                    } else {
+                        panic!("Expected properties to be an object");
+                    }
+
+                    // Verify required parameters
+                    if let serde_json::Value::Array(required) = &params["required"] {
+                        assert_eq!(required.len(), 1);
+                        assert_eq!(required[0], "location");
+                        assert!(!required.contains(&serde_json::json!("format")));
+                    } else {
+                        panic!("Expected required to be an array");
+                    }
                 } else {
-                    panic!("Expected properties to be an object");
-                }
-
-                // Verify required parameters
-                if let serde_json::Value::Array(required) = &params["required"] {
-                    assert_eq!(required.len(), 1);
-                    assert_eq!(required[0], "location");
-                    assert!(!required.contains(&serde_json::json!("format")));
-                } else {
-                    panic!("Expected required to be an array");
+                    panic!("Expected parameters to be an object");
                 }
             } else {
-                panic!("Expected parameters to be an object");
+                panic!("Expected function to be an object");
             }
         } else {
-            panic!("Expected function to be an object");
+            panic!("Expected object to be an object");
         }
     }
 
@@ -301,33 +311,46 @@ mod tests {
         if let serde_json::Value::Array(functions) = &tools.tools {
             assert_eq!(functions.len(), 2);
 
+            // Check the type field in each function
+            assert_eq!(functions[0]["type"], "function");
+            assert_eq!(functions[1]["type"], "function");
+
             // Verify first function (temperature)
-            assert_eq!(functions[0]["name"], "get_current_temperature");
-            assert_eq!(
-                functions[0]["description"],
-                "Get the current temperature in a given location"
-            );
+            if let serde_json::Value::Object(function0) = &functions[0]["function"] {
+                assert_eq!(function0["name"], "get_current_temperature");
+                assert_eq!(
+                    function0["description"],
+                    "Get the current temperature in a given location"
+                );
 
-            // Verify second function (visibility)
-            assert_eq!(functions[1]["name"], "get_current_visibility");
-            assert_eq!(
-                functions[1]["description"],
-                "Get the current visibility conditions in a given location"
-            );
-
-            // Verify parameters were properly added
-            if let serde_json::Value::Object(params0) = &functions[0]["parameters"] {
-                assert!(params0.contains_key("properties"));
-                assert!(params0.contains_key("required"));
+                // Verify parameters were properly added
+                if let serde_json::Value::Object(params) = &function0["parameters"] {
+                    assert!(params.contains_key("properties"));
+                    assert!(params.contains_key("required"));
+                } else {
+                    panic!("Expected parameters to be an object in first function");
+                }
             } else {
-                panic!("Expected parameters to be an object in first function");
+                panic!("Expected function to be an object in first function");
             }
 
-            if let serde_json::Value::Object(params1) = &functions[1]["parameters"] {
-                assert!(params1.contains_key("properties"));
-                assert!(params1.contains_key("required"));
+            // Verify second function (visibility)
+            if let serde_json::Value::Object(function1) = &functions[1]["function"] {
+                assert_eq!(function1["name"], "get_current_visibility");
+                assert_eq!(
+                    function1["description"],
+                    "Get the current visibility conditions in a given location"
+                );
+
+                // Verify parameters were properly added
+                if let serde_json::Value::Object(params) = &function1["parameters"] {
+                    assert!(params.contains_key("properties"));
+                    assert!(params.contains_key("required"));
+                } else {
+                    panic!("Expected parameters to be an object in second function");
+                }
             } else {
-                panic!("Expected parameters to be an object in second function");
+                panic!("Expected function to be an object in second function");
             }
         } else {
             panic!("Expected tools to be an array");
