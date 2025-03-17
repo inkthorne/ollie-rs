@@ -1,5 +1,6 @@
 pub mod ollama;
 pub mod request;
+pub mod response;
 pub mod tool;
 
 pub fn add(left: u64, right: u64) -> u64 {

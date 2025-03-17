@@ -1,4 +1,5 @@
 use crate::request::OllamaRequest;
+use crate::response::OllamaResponse;
 use serde::Deserialize;
 use std::net::SocketAddr;
 use std::str::FromStr;
@@ -9,22 +10,6 @@ pub struct OllamaResponseChunk {
     // pub created_at: String,
     pub response: String,
     pub done: bool,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct GenerateResponse {
-    pub model: String,
-    pub created_at: String,
-    pub response: String,
-    pub done: bool,
-    pub done_reason: String,
-    pub context: Vec<u32>,
-    pub total_duration: u64,
-    pub load_duration: u64,
-    pub prompt_eval_count: u32,
-    // pub prompt_eval_count_duration: u64,
-    pub eval_count: u32,
-    // pub eval_count_duration: u64,
 }
 
 //============================================================================
@@ -91,9 +76,9 @@ impl Ollama {
         &self,
         prompt: &OllamaRequest,
         mut response_handler: F,
-    ) -> Result<String, reqwest::Error>
+    ) -> Result<(), reqwest::Error>
     where
-        F: FnMut(serde_json::Value),
+        F: FnMut(OllamaResponse),
     {
         let url = format!("http://{}/api/generate", self.server_addr);
         let mut response = self
@@ -103,17 +88,10 @@ impl Ollama {
             .send()
             .await?;
 
-        let mut accumulated_response = String::new();
-
         while let Some(http_chunk) = response.chunk().await? {
-            match serde_json::from_slice::<serde_json::Value>(&http_chunk) {
-                Ok(json_chunk) => {
-                    if let Some(response_chunk) =
-                        json_chunk.get("response").and_then(|r| r.as_str())
-                    {
-                        accumulated_response.push_str(response_chunk);
-                    }
-                    response_handler(json_chunk);
+            match OllamaResponse::from_slice(&http_chunk) {
+                Ok(ollama_response) => {
+                    response_handler(ollama_response);
                 }
                 Err(_) => {
                     continue;
@@ -121,7 +99,7 @@ impl Ollama {
             }
         }
 
-        Ok(accumulated_response)
+        Ok(())
     }
 }
 
@@ -132,8 +110,14 @@ impl Ollama {
 mod tests {
     use super::*;
     use crate::tool::{OllamaFunction, OllamaFunctionParameters, OllamaTools};
-    use serde_json::Value;
 
+    /// Tests basic text generation functionality with the Ollama API
+    ///
+    /// This test:
+    /// 1. Creates a default Ollama client
+    /// 2. Sends a simple prompt asking about France's capital
+    /// 3. Configures the response to be in JSON format
+    /// 4. Verifies that the request completes successfully
     #[tokio::test]
     async fn test_generate_request1() {
         let ollama = Ollama::default();
@@ -144,10 +128,13 @@ mod tests {
             .stream(false)
             .format("json");
 
+        let mut accumulated_response = String::new();
         let result = ollama
             .generate(&request, |response| {
-                let pretty = serde_json::to_string_pretty(&response).unwrap();
-                println!("response: {}", pretty);
+                response
+                    .response()
+                    .map(|r| accumulated_response.push_str(r));
+                println!("response: {}", response.to_string_pretty());
             })
             .await;
 
@@ -156,13 +143,17 @@ mod tests {
         }
         assert!(result.is_ok());
 
-        // Parse the string response into a JSON Value
-        let response_str = result.unwrap();
-        println!("response string: {}", response_str);
-        let json_value: Value = serde_json::from_str(&response_str).expect("Failed to parse JSON");
-        println!("response json: {:?}", json_value);
+        // Print the accumulated response for manual verification
+        println!("accumulated_response: {}", accumulated_response);
     }
 
+    /// Tests the Ollama API's function calling capabilities using custom tools
+    ///
+    /// This test:
+    /// 1. Sets up an Ollama client
+    /// 2. Creates a custom tool for getting temperature data
+    /// 3. Sends a prompt that should trigger tool usage
+    /// 4. Verifies the request processes successfully with tool integration
     #[tokio::test]
     async fn test_generate_request_with_tools() {
         // Create a new Ollama client with default settings
@@ -197,10 +188,13 @@ mod tests {
             .tools(&tools);
 
         // Generate a response using the request with tools
+        let mut accumulated_response = String::new();
         let result = ollama
             .generate(&request, |response| {
-                let pretty = serde_json::to_string_pretty(&response).unwrap();
-                println!("response: {}", pretty);
+                response
+                    .response()
+                    .map(|r| accumulated_response.push_str(r));
+                println!("response: {}", response.to_string_pretty());
             })
             .await;
 
@@ -210,15 +204,12 @@ mod tests {
         }
         assert!(result.is_ok());
 
-        // Check the response (actual verification would depend on the Ollama instance)
-        let response_str = result.unwrap();
-        println!("Tool response: {}", response_str);
+        // Print the accumulated response for manual inspection
+        println!("Tool response: {}", accumulated_response);
 
         // Note: In a real test with a mocked Ollama server, we would verify that:
         // 1. The tool was called with the appropriate parameters
         // 2. The response contained the expected tool call information
         // 3. The model handled the tool response correctly
-
-        // For now, just printing the response for manual inspection
     }
 }
