@@ -1,4 +1,62 @@
 //============================================================================
+// OllamaToolCall
+//============================================================================
+pub struct OllamaToolCall {
+    value: serde_json::Value,
+}
+
+impl From<&serde_json::Value> for OllamaToolCall {
+    fn from(value: &serde_json::Value) -> Self {
+        Self {
+            value: value.clone(),
+        }
+    }
+}
+
+impl OllamaToolCall {
+    pub fn name(&self) -> Option<&str> {
+        self.value.get("function")?.get("name")?.as_str()
+    }
+
+    pub fn to_string_pretty(&self) -> String {
+        serde_json::to_string_pretty(&self.value).unwrap_or_default()
+    }
+}
+
+//============================================================================
+// OllamaToolCallResult
+//============================================================================
+pub struct OllamaToolCallResult {
+    result: serde_json::Value,
+}
+
+impl OllamaToolCallResult {
+    pub fn new(model: &str, tool_name: &str, result: &str) -> Self {
+        Self {
+            result: serde_json::json!({
+                "message": {
+                    "model": model,
+                    "role": "tool",
+                    "content": "",
+                    "name": tool_name,
+                    "output": {
+                        "result": result,
+                    }
+                },
+                "done": false,
+            }),
+        }
+    }
+    pub fn as_json(&self) -> &serde_json::Value {
+        &self.result
+    }
+
+    pub fn to_string_pretty(&self) -> String {
+        serde_json::to_string_pretty(&self.result).unwrap_or_default()
+    }
+}
+
+//============================================================================
 // OllamaFunctionParameters
 //============================================================================
 pub struct OllamaFunctionParameters {

@@ -168,7 +168,7 @@ mod tests {
     use super::*;
     use crate::{
         message::OllamaMessage,
-        tool::{OllamaFunction, OllamaFunctionParameters, OllamaTools},
+        tool::{OllamaFunction, OllamaFunctionParameters, OllamaToolCall, OllamaTools},
     };
 
     /// Tests basic text generation functionality with the Ollama API
@@ -286,7 +286,7 @@ mod tests {
         let mut request = OllamaRequest::new();
         request
             .model("llama3.2")
-            .stream(false)
+            .stream(true)
             .tools(&tools)
             .push_message(&message);
         println!("---\nrequest: {}", request.to_string_pretty());
@@ -298,6 +298,16 @@ mod tests {
                 response
                     .response()
                     .map(|r| accumulated_response.push_str(r));
+
+                if let Some(tool_calls) = response.tool_calls() {
+                    tool_calls.as_array().map(|functions| {
+                        for function in functions {
+                            let tool_call = OllamaToolCall::from(function);
+                            println!("---\ncall: {}", tool_call.to_string_pretty());
+                            println!("name: {}", tool_call.name().unwrap());
+                        }
+                    });
+                }
                 println!("---\nresponse: {}", response.to_string_pretty());
             })
             .await;

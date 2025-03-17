@@ -45,6 +45,10 @@ impl OllamaResponse {
         self.response.get("response")?.as_str()
     }
 
+    pub fn tool_calls(&self) -> Option<&serde_json::Value> {
+        self.response.get("message")?.get("tool_calls")
+    }
+
     pub fn to_string_pretty(&self) -> String {
         serde_json::to_string_pretty(&self.response).unwrap_or_default()
     }
