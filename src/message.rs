@@ -1,3 +1,5 @@
+use crate::tool::OllamaToolCalls;
+
 //============================================================================
 // OllamaMessage
 //============================================================================
@@ -116,6 +118,16 @@ impl OllamaMessage {
     /// The role as a string, or None if the field doesn't exist.
     pub fn role(&self) -> Option<&str> {
         self.object.get("role")?.as_str()
+    }
+
+    /// Gets the tool_calls field of the message.
+    ///
+    /// ## Returns
+    ///
+    /// An Option containing the OllamaToolCalls if the field exists,
+    /// or None if the field doesn't exist.
+    pub fn tool_calls(&self) -> Option<OllamaToolCalls> {
+        self.object.get("tool_calls").map(OllamaToolCalls::from)
     }
 }
 

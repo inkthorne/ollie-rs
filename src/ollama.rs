@@ -146,7 +146,7 @@ impl Ollama {
             .await?;
 
         while let Some(http_chunk) = response.chunk().await? {
-            match OllamaResponse::from_slice(&http_chunk) {
+            match OllamaResponse::try_from(&http_chunk) {
                 Ok(ollama_response) => {
                     response_handler(ollama_response);
                 }
@@ -168,10 +168,7 @@ mod tests {
     use super::*;
     use crate::{
         message::OllamaMessage,
-        tool::{
-            OllamaFunction, OllamaFunctionParameters, OllamaToolCall, OllamaToolCallResponse,
-            OllamaTools,
-        },
+        tool::{OllamaFunction, OllamaFunctionParameters, OllamaTools},
     };
 
     /// Tests basic text generation functionality with the Ollama API
@@ -197,7 +194,7 @@ mod tests {
                 response
                     .response()
                     .map(|r| accumulated_response.push_str(r));
-                println!("response: {}", response.to_string_pretty());
+                println!("response: {}", response.as_string_pretty());
             })
             .await;
 
@@ -302,29 +299,17 @@ mod tests {
                     .response()
                     .map(|r| accumulated_response.push_str(r));
 
-                if let Some(tool_calls) = response.tool_calls() {
-                    tool_calls.as_array().map(|functions| {
-                        for function in functions {
-                            let tool_call = OllamaToolCall::from(function);
-                            let arguments = tool_call.arguments().unwrap();
-                            println!("---\ncall: {}", tool_call.as_string_pretty());
-                            println!("name: {}", tool_call.name().unwrap());
-                            let response_text = format!(
-                                "the current temperature in {} is {}",
-                                arguments.get("location").unwrap().as_str().unwrap(),
-                                "78 degrees."
-                            );
-                            println!("response_text: {}", response_text);
-                            let tool_response = OllamaToolCallResponse::new(
-                                "ollama3.2",
-                                tool_call.name().unwrap(),
-                                &response_text,
-                            );
-                            println!("tool_response: {}", tool_response.to_string_pretty());
+                println!("---\nresponse: {}", response.as_string_pretty());
+
+                response.message().map(|message| {
+                    println!("---\nmessage: {}", message.as_string_pretty());
+                    message.tool_calls().map(|tool_calls| {
+                        for i in 0..tool_calls.len() {
+                            let tool_call = tool_calls.tool_call(i).unwrap();
+                            println!("---\ntool_call: {}", tool_call.as_string_pretty());
                         }
                     });
-                }
-                println!("---\nresponse: {}", response.to_string_pretty());
+                });
             })
             .await;
 
