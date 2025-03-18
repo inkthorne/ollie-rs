@@ -1,11 +1,64 @@
 //============================================================================
 // OllamaToolCall
 //============================================================================
+/// ## Example JSON structure
+/// ```json
+/// {
+///   "function": {
+///     "arguments": {
+///       "location": "Paris"
+///     },
+///     "name": "get_current_weather"
+///   }
+/// }
+/// ```
 pub struct OllamaToolCall {
     value: serde_json::Value,
 }
 
+impl OllamaToolCall {
+    /// Converts the tool call to a pretty-printed JSON string.
+    ///
+    /// ## Returns
+    ///
+    /// A formatted JSON string representation of the tool call.
+    /// Returns an empty string if serialization fails.
+    pub fn as_string_pretty(&self) -> String {
+        serde_json::to_string_pretty(&self.value).unwrap_or_default()
+    }
+
+    /// Extracts the function name from the tool call.
+    ///
+    /// ## Returns
+    ///
+    /// An Option containing the function name as a string slice if present,
+    /// or None if the function name cannot be found or is not a string.
+    pub fn name(&self) -> Option<&str> {
+        self.value.get("function")?.get("name")?.as_str()
+    }
+
+    /// Extracts the function arguments from the tool call.
+    ///
+    /// ## Returns
+    ///
+    /// An Option containing a reference to the JSON value of arguments if present,
+    /// or None if the arguments cannot be found.
+    pub fn arguments(&self) -> Option<&serde_json::Value> {
+        self.value.get("function")?.get("arguments")
+    }
+}
+
+/// Implements conversion from a JSON value reference to an OllamaToolCall.
 impl From<&serde_json::Value> for OllamaToolCall {
+    /// Creates an OllamaToolCall from a JSON value reference.
+    ///
+    /// ## Arguments
+    ///
+    /// * `value` - A reference to a serde_json::Value to convert
+    ///
+    /// ## Returns
+    ///
+    /// A new OllamaToolCall containing a clone of the provided value.
     fn from(value: &serde_json::Value) -> Self {
         Self {
             value: value.clone(),
@@ -13,24 +66,166 @@ impl From<&serde_json::Value> for OllamaToolCall {
     }
 }
 
-impl OllamaToolCall {
-    pub fn name(&self) -> Option<&str> {
-        self.value.get("function")?.get("name")?.as_str()
+//============================================================================
+// OllamaToolCalls
+//============================================================================
+/// A collection of tool calls for Ollama API communication.
+///
+/// This struct maintains an array of tool calls that can be sent to or received from Ollama API endpoints.
+/// It handles the proper formatting of tool call collections and provides methods
+/// for adding and accessing tool calls in the collection.
+///
+/// ## Example JSON structure
+/// ```json
+/// [
+///   {
+///     "function": {
+///       "arguments": {
+///         "location": "Paris"
+///       },
+///       "name": "get_current_weather"
+///     }
+///   },
+///   {
+///     "function": {
+///       "arguments": {
+///         "text": "Hello world"
+///       },
+///       "name": "text_translator"
+///     }
+///   }
+/// ]
+/// ```
+pub struct OllamaToolCalls {
+    array: serde_json::Value,
+}
+
+impl OllamaToolCalls {
+    /// Creates a new empty OllamaToolCalls collection.
+    ///
+    /// ## Returns
+    ///
+    /// A new OllamaToolCalls with an empty array.
+    pub fn new() -> Self {
+        Self {
+            array: serde_json::Value::Array(vec![]),
+        }
     }
 
-    pub fn to_string_pretty(&self) -> String {
-        serde_json::to_string_pretty(&self.value).unwrap_or_default()
+    /// Gets the underlying JSON representation of the tool call collection.
+    ///
+    /// ## Returns
+    ///
+    /// A reference to the underlying JSON value containing the tool call array.
+    pub fn as_json(&self) -> &serde_json::Value {
+        &self.array
+    }
+
+    /// Converts the tool call collection to a pretty-printed JSON string.
+    ///
+    /// ## Returns
+    ///
+    /// A formatted JSON string representation of all tool calls.
+    /// Returns an empty string if serialization fails.
+    pub fn as_string_pretty(&self) -> String {
+        serde_json::to_string_pretty(&self.array).unwrap_or_default()
+    }
+
+    /// Returns the number of tool calls in the collection.
+    ///
+    /// ## Returns
+    ///
+    /// An integer count of the tool calls in the array.
+    pub fn len(&self) -> usize {
+        match self.array.as_array() {
+            Some(arr) => arr.len(),
+            None => 0,
+        }
+    }
+
+    /// Checks if the collection is empty.
+    ///
+    /// ## Returns
+    ///
+    /// A boolean indicating whether the collection has no tool calls.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Retrieves a tool call at the specified index.
+    ///
+    /// ## Arguments
+    ///
+    /// * `index` - The zero-based index of the tool call to retrieve
+    ///
+    /// ## Returns
+    ///
+    /// An Option containing the OllamaToolCall if the index is valid, or None if out of bounds.
+    pub fn tool_call(&self, index: usize) -> Option<OllamaToolCall> {
+        match self.array.as_array() {
+            Some(arr) => arr.get(index).map(OllamaToolCall::from),
+            None => None,
+        }
+    }
+
+    /// Adds a tool call to the collection.
+    ///
+    /// ## Arguments
+    ///
+    /// * `tool_call` - The OllamaToolCall to add to the collection
+    ///
+    /// ## Returns
+    ///
+    /// A mutable reference to self for method chaining.
+    pub fn push_tool_call(&mut self, tool_call: OllamaToolCall) -> &mut Self {
+        self.array
+            .as_array_mut()
+            .unwrap()
+            .push(tool_call.value.clone());
+        self
+    }
+}
+
+impl From<&serde_json::Value> for OllamaToolCalls {
+    fn from(value: &serde_json::Value) -> Self {
+        // For array values, keep as-is
+        if value.is_array() {
+            Self {
+                array: value.clone(),
+            }
+        } else {
+            // For non-array values, create a new array with the value as the only element
+            Self {
+                array: serde_json::Value::Array(vec![value.clone()]),
+            }
+        }
     }
 }
 
 //============================================================================
-// OllamaToolCallResult
+// OllamaToolCallResponse
 //============================================================================
-pub struct OllamaToolCallResult {
+/// ## Example
+///
+/// Layout of the JSON object for a tool call response:
+/// ```json
+/// {
+///   "model": "your_model_name",
+///   "created_at": "2023-11-20T12:00:01.000Z",
+///   "message": {
+///     "role": "tool",
+///     "content": null,
+///     "tool_call_id": "tool_call_abc123",
+///     "output": "{\"result\": \"The current weather in London is 15 degrees Celsius and sunny.\"}"
+///   },
+///   "done": false
+/// }
+/// ```
+pub struct OllamaToolCallResponse {
     result: serde_json::Value,
 }
 
-impl OllamaToolCallResult {
+impl OllamaToolCallResponse {
     pub fn new(model: &str, tool_name: &str, result: &str) -> Self {
         Self {
             result: serde_json::json!({
@@ -161,6 +356,75 @@ impl OllamaTools {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Tests the OllamaToolCalls collection functionality.
+    ///
+    /// This test verifies that:
+    /// - A new tool calls collection can be created
+    /// - Individual OllamaToolCall instances can be added to the collection
+    /// - The builder pattern works for chaining operations
+    /// - Tool calls can be retrieved by index
+    /// - Length and emptiness can be checked
+    #[test]
+    fn test_tool_calls() {
+        // Create a new tool calls collection
+        let mut tool_calls = OllamaToolCalls::new();
+
+        // Verify it starts empty
+        assert_eq!(tool_calls.len(), 0);
+        assert!(tool_calls.is_empty());
+
+        // Create tool calls using JSON values
+        let weather_call = OllamaToolCall::from(&serde_json::json!({
+            "function": {
+                "arguments": {
+                    "location": "Tokyo"
+                },
+                "name": "get_current_weather"
+            }
+        }));
+
+        let translate_call = OllamaToolCall::from(&serde_json::json!({
+            "function": {
+                "arguments": {
+                    "text": "Hello world",
+                    "target_language": "Japanese"
+                },
+                "name": "translate_text"
+            }
+        }));
+
+        // Add both tool calls to the collection using builder pattern
+        tool_calls
+            .push_tool_call(weather_call)
+            .push_tool_call(translate_call);
+
+        // Verify the collection is no longer empty
+        assert_eq!(tool_calls.len(), 2);
+        assert!(!tool_calls.is_empty());
+
+        // Test accessing by valid indices
+        let call0 = tool_calls.tool_call(0);
+        assert!(call0.is_some());
+        assert_eq!(call0.unwrap().name(), Some("get_current_weather"));
+
+        let call1 = tool_calls.tool_call(1);
+        assert!(call1.is_some());
+        assert_eq!(call1.unwrap().name(), Some("translate_text"));
+
+        // Test accessing by invalid index
+        let call_out_of_bounds = tool_calls.tool_call(2);
+        assert!(call_out_of_bounds.is_none());
+
+        // Get the JSON string representation and verify it contains our tool calls
+        let json_str = tool_calls.as_string_pretty();
+        println!("---\ntool_calls: {}", json_str);
+
+        assert!(json_str.contains("Tokyo"));
+        assert!(json_str.contains("get_current_weather"));
+        assert!(json_str.contains("Hello world"));
+        assert!(json_str.contains("translate_text"));
+    }
 
     /// Tests the OllamaFunctionParameters struct functionality.
     ///
@@ -413,5 +677,71 @@ mod tests {
         } else {
             panic!("Expected tools to be an array");
         }
+    }
+
+    /// Tests the From<&serde_json::Value> implementation for OllamaToolCalls.
+    ///
+    /// This test verifies that:
+    /// - An OllamaToolCalls can be created from a JSON array
+    /// - An OllamaToolCalls can be created from a single JSON object (non-array)
+    /// - Both conversions produce correctly structured tool calls
+    #[test]
+    fn test_from_value_for_tool_calls() {
+        // Test creating OllamaToolCalls from a JSON array value
+        let array_value = serde_json::json!([
+            {
+                "function": {
+                    "arguments": {
+                        "location": "New York"
+                    },
+                    "name": "get_weather"
+                }
+            },
+            {
+                "function": {
+                    "arguments": {
+                        "query": "Best restaurants"
+                    },
+                    "name": "search"
+                }
+            }
+        ]);
+
+        let tool_calls_from_array = OllamaToolCalls::from(&array_value);
+
+        // Verify the conversion from array
+        assert_eq!(tool_calls_from_array.len(), 2);
+        assert_eq!(
+            tool_calls_from_array.tool_call(0).unwrap().name(),
+            Some("get_weather")
+        );
+        assert_eq!(
+            tool_calls_from_array.tool_call(1).unwrap().name(),
+            Some("search")
+        );
+
+        // Test creating OllamaToolCalls from a single JSON object value
+        let object_value = serde_json::json!({
+            "function": {
+                "arguments": {
+                    "message": "Hello world"
+                },
+                "name": "echo"
+            }
+        });
+
+        let tool_calls_from_object = OllamaToolCalls::from(&object_value);
+
+        // Verify the conversion from single object (should be wrapped in an array)
+        assert_eq!(tool_calls_from_object.len(), 1);
+        assert_eq!(
+            tool_calls_from_object.tool_call(0).unwrap().name(),
+            Some("echo")
+        );
+
+        // Confirm the JSON structure matches expectations
+        let json_str = tool_calls_from_object.as_string_pretty();
+        assert!(json_str.contains("echo"));
+        assert!(json_str.contains("Hello world"));
     }
 }

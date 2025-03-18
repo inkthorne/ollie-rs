@@ -168,7 +168,10 @@ mod tests {
     use super::*;
     use crate::{
         message::OllamaMessage,
-        tool::{OllamaFunction, OllamaFunctionParameters, OllamaToolCall, OllamaTools},
+        tool::{
+            OllamaFunction, OllamaFunctionParameters, OllamaToolCall, OllamaToolCallResponse,
+            OllamaTools,
+        },
     };
 
     /// Tests basic text generation functionality with the Ollama API
@@ -219,8 +222,8 @@ mod tests {
         let ollama = Ollama::default();
         let mut message = OllamaMessage::new();
         message
-            .role("user")
-            .content("can you explain briefly, why is the sky blue?");
+            .set_role("user")
+            .set_content("can you explain briefly, why is the sky blue?");
 
         let mut request = OllamaRequest::new();
         request
@@ -279,8 +282,8 @@ mod tests {
 
         let mut message = OllamaMessage::new();
         message
-            .role("user")
-            .content("What is the current weather in Paris?");
+            .set_role("user")
+            .set_content("What is the current weather in Paris?");
 
         // Create the request with a prompt that would trigger tool usage
         let mut request = OllamaRequest::new();
@@ -303,8 +306,21 @@ mod tests {
                     tool_calls.as_array().map(|functions| {
                         for function in functions {
                             let tool_call = OllamaToolCall::from(function);
-                            println!("---\ncall: {}", tool_call.to_string_pretty());
+                            let arguments = tool_call.arguments().unwrap();
+                            println!("---\ncall: {}", tool_call.as_string_pretty());
                             println!("name: {}", tool_call.name().unwrap());
+                            let response_text = format!(
+                                "the current temperature in {} is {}",
+                                arguments.get("location").unwrap().as_str().unwrap(),
+                                "78 degrees."
+                            );
+                            println!("response_text: {}", response_text);
+                            let tool_response = OllamaToolCallResponse::new(
+                                "ollama3.2",
+                                tool_call.name().unwrap(),
+                                &response_text,
+                            );
+                            println!("tool_response: {}", tool_response.to_string_pretty());
                         }
                     });
                 }
