@@ -203,65 +203,16 @@ impl From<&serde_json::Value> for OllamaToolCalls {
 }
 
 //============================================================================
-// OllamaToolCallResponse
-//============================================================================
-/// ## Example
-///
-/// Layout of the JSON object for a tool call response:
-/// ```json
-/// {
-///   "model": "your_model_name",
-///   "created_at": "2023-11-20T12:00:01.000Z",
-///   "message": {
-///     "role": "tool",
-///     "content": null,
-///     "tool_call_id": "tool_call_abc123",
-///     "output": "{\"result\": \"The current weather in London is 15 degrees Celsius and sunny.\"}"
-///   },
-///   "done": false
-/// }
-/// ```
-pub struct OllamaToolCallResponse {
-    result: serde_json::Value,
-}
-
-impl OllamaToolCallResponse {
-    pub fn new(model: &str, tool_name: &str, result: &str) -> Self {
-        Self {
-            result: serde_json::json!({
-                "message": {
-                    "model": model,
-                    "role": "tool",
-                    "content": "",
-                    "name": tool_name,
-                    "output": {
-                        "result": result,
-                    }
-                },
-                "done": false,
-            }),
-        }
-    }
-    pub fn as_json(&self) -> &serde_json::Value {
-        &self.result
-    }
-
-    pub fn to_string_pretty(&self) -> String {
-        serde_json::to_string_pretty(&self.result).unwrap_or_default()
-    }
-}
-
-//============================================================================
 // OllamaFunctionParameters
 //============================================================================
 pub struct OllamaFunctionParameters {
-    parameters: serde_json::Value,
+    object: serde_json::Value,
 }
 
 impl OllamaFunctionParameters {
     pub fn new() -> Self {
         Self {
-            parameters: serde_json::json!({
+            object: serde_json::json!({
                 "type": "object",
                 "properties": {},
                 "required": []
@@ -269,7 +220,28 @@ impl OllamaFunctionParameters {
         }
     }
 
-    pub fn parameter(
+    /// Returns a pretty-printed JSON string representation of the function parameters.
+    ///
+    /// ## Returns
+    ///
+    /// A formatted JSON string of the parameters. Returns an empty string if serialization fails.
+    pub fn as_string_pretty(&self) -> String {
+        serde_json::to_string_pretty(&self.object).unwrap_or_default()
+    }
+
+    /// Adds a parameter to the function parameters definition.
+    ///
+    /// ## Arguments
+    ///
+    /// * `name` - The parameter name as it will appear in the JSON schema
+    /// * `json_type` - The JSON schema type (e.g., "string", "number", "boolean")
+    /// * `description` - A helpful description of what the parameter is used for
+    /// * `required` - Whether this parameter is required (true) or optional (false)
+    ///
+    /// ## Returns
+    ///
+    /// A mutable reference to self for method chaining.
+    pub fn push_parameter(
         &mut self,
         name: &str,
         json_type: &str,
@@ -282,11 +254,11 @@ impl OllamaFunctionParameters {
         });
 
         // Add the new parameter to properties
-        self.parameters["properties"][name] = details;
+        self.object["properties"][name] = details;
 
         // If parameter is required, add it to the required array
         if required {
-            self.parameters["required"]
+            self.object["required"]
                 .as_array_mut()
                 .unwrap()
                 .push(serde_json::json!(name));
@@ -315,8 +287,8 @@ impl OllamaFunction {
             }),
         }
     }
-    pub fn parameters(&mut self, parameters: OllamaFunctionParameters) -> &mut Self {
-        self.object["function"]["parameters"] = parameters.parameters;
+    pub fn set_parameters(&mut self, parameters: OllamaFunctionParameters) -> &mut Self {
+        self.object["function"]["parameters"] = parameters.object;
         self
     }
 }
@@ -325,19 +297,19 @@ impl OllamaFunction {
 // OllamaTools
 //============================================================================
 pub struct OllamaTools {
-    tools: serde_json::Value,
+    array: serde_json::Value,
 }
 
 impl OllamaTools {
+    /// Creates a new empty OllamaTools collection.
+    ///
+    /// ## Returns
+    ///
+    /// A new OllamaTools with an empty array.
     pub fn new() -> Self {
         Self {
-            tools: serde_json::Value::Array(vec![]),
+            array: serde_json::Value::Array(vec![]),
         }
-    }
-
-    pub fn add_function(&mut self, function: OllamaFunction) -> &mut Self {
-        self.tools.as_array_mut().unwrap().push(function.object);
-        self
     }
 
     /// Returns the underlying JSON value of the tools
@@ -346,7 +318,21 @@ impl OllamaTools {
     ///
     /// A reference to the internal JSON value
     pub fn as_json(&self) -> &serde_json::Value {
-        &self.tools
+        &self.array
+    }
+
+    /// Adds a function to the tools collection.
+    ///
+    /// ## Arguments
+    ///
+    /// * `function` - The OllamaFunction to add to the collection
+    ///
+    /// ## Returns
+    ///
+    /// A mutable reference to self for method chaining.
+    pub fn push_function(&mut self, function: OllamaFunction) -> &mut Self {
+        self.array.as_array_mut().unwrap().push(function.object);
+        self
     }
 }
 
@@ -439,17 +425,17 @@ mod tests {
 
         // Add two string parameters
         params
-            .parameter("name", "string", "The name of the user", true)
-            .parameter("email", "string", "The email address of the user", false);
+            .push_parameter("name", "string", "The name of the user", true)
+            .push_parameter("email", "string", "The email address of the user", false);
 
         // Print the value of the structure
         println!(
             "---\nparameters: {}",
-            serde_json::to_string_pretty(&params.parameters).unwrap()
+            serde_json::to_string_pretty(&params.object).unwrap()
         );
 
         // Basic assertion to verify the parameters were added
-        if let serde_json::Value::Object(properties) = &params.parameters["properties"] {
+        if let serde_json::Value::Object(properties) = &params.object["properties"] {
             assert!(properties.contains_key("name"));
             assert!(properties.contains_key("email"));
         } else {
@@ -457,7 +443,7 @@ mod tests {
         }
 
         // Verify that only required parameters are in the required array
-        if let serde_json::Value::Array(required) = &params.parameters["required"] {
+        if let serde_json::Value::Array(required) = &params.object["required"] {
             assert_eq!(required.len(), 1);
             assert_eq!(required[0], "name");
             assert!(!required.contains(&serde_json::json!("email")));
@@ -484,13 +470,13 @@ mod tests {
         // Create parameters for the function
         let mut params = OllamaFunctionParameters::new();
         params
-            .parameter(
+            .push_parameter(
                 "location",
                 "string",
                 "The city and state, e.g., San Francisco, CA",
                 true,
             )
-            .parameter(
+            .push_parameter(
                 "format",
                 "string",
                 "The temperature unit to use: 'celsius' or 'fahrenheit'",
@@ -498,7 +484,7 @@ mod tests {
             );
 
         // Add parameters to the function
-        weather_function.parameters(params);
+        weather_function.set_parameters(params);
 
         // Print the value of the structure
         println!(
@@ -581,20 +567,20 @@ mod tests {
         // Add parameters to temperature function
         let mut temp_params = OllamaFunctionParameters::new();
         temp_params
-            .parameter(
+            .push_parameter(
                 "location",
                 "string",
                 "The city and state, e.g., San Francisco, CA",
                 true,
             )
-            .parameter(
+            .push_parameter(
                 "unit",
                 "string",
                 "The temperature unit: 'celsius' or 'fahrenheit'",
                 false,
             );
 
-        temp_function.parameters(temp_params);
+        temp_function.set_parameters(temp_params);
 
         // Create visibility function
         let mut vis_function = OllamaFunction::new(
@@ -605,32 +591,34 @@ mod tests {
         // Add parameters to visibility function
         let mut vis_params = OllamaFunctionParameters::new();
         vis_params
-            .parameter(
+            .push_parameter(
                 "location",
                 "string",
                 "The city and state, e.g., San Francisco, CA",
                 true,
             )
-            .parameter(
+            .push_parameter(
                 "format",
                 "string",
                 "The visibility format: 'miles' or 'kilometers'",
                 false,
             );
 
-        vis_function.parameters(vis_params);
+        vis_function.set_parameters(vis_params);
 
         // Add both functions to tools
-        tools.add_function(temp_function).add_function(vis_function);
+        tools
+            .push_function(temp_function)
+            .push_function(vis_function);
 
         // Print the value of the structure
         println!(
             "---\ntools: {}",
-            serde_json::to_string_pretty(&tools.tools).unwrap()
+            serde_json::to_string_pretty(&tools.array).unwrap()
         );
 
         // Verify the tools has two functions
-        if let serde_json::Value::Array(functions) = &tools.tools {
+        if let serde_json::Value::Array(functions) = &tools.array {
             assert_eq!(functions.len(), 2);
 
             // Check the type field in each function

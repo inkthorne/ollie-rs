@@ -183,10 +183,10 @@ mod tests {
         let ollama = Ollama::default();
         let mut request = OllamaRequest::new();
         request
-            .model("gemma3:1b")
-            .prompt("What is the capital of France? respond in json")
-            .stream(false)
-            .format("json");
+            .set_model("gemma3:1b")
+            .set_prompt("What is the capital of France? respond in json")
+            .set_stream(false)
+            .set_format("json");
 
         let mut accumulated_response = String::new();
         let result = ollama
@@ -224,8 +224,8 @@ mod tests {
 
         let mut request = OllamaRequest::new();
         request
-            .model("gemma3:1b")
-            .stream(true)
+            .set_model("gemma3:1b")
+            .set_stream(true)
             .push_message(&message);
 
         let mut accumulated_content = String::new();
@@ -268,14 +268,14 @@ mod tests {
 
         // Add parameters to the function
         let mut params = OllamaFunctionParameters::new();
-        params.parameter(
+        params.push_parameter(
             "location",
             "string",
             "the location to get the temperature for",
             true,
         );
-        temperature_function.parameters(params);
-        tools.add_function(temperature_function);
+        temperature_function.set_parameters(params);
+        tools.push_function(temperature_function);
 
         let mut message = OllamaMessage::new();
         message
@@ -285,11 +285,11 @@ mod tests {
         // Create the request with a prompt that would trigger tool usage
         let mut request = OllamaRequest::new();
         request
-            .model("llama3.2")
-            .stream(true)
-            .tools(&tools)
+            .set_model("llama3.2")
+            .set_stream(false)
+            .set_tools(&tools)
             .push_message(&message);
-        println!("---\nrequest: {}", request.to_string_pretty());
+        println!("---\nrequest: {}", request.as_string_pretty());
 
         let mut forwarded_tool_call = OllamaMessage::new();
 
@@ -333,7 +333,7 @@ mod tests {
 
         request.push_message(&forwarded_tool_call);
         request.push_message(&tool_response);
-        println!("---\n2nd request: {}", request.to_string_pretty());
+        println!("---\n2nd request: {}", request.as_string_pretty());
 
         // Generate a 2nd response using context from the tool
         let mut accumulated_response = String::new();

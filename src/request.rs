@@ -23,11 +23,49 @@ impl OllamaRequest {
         }
     }
 
-    pub fn messages(&mut self, messages: OllamaMessages) -> &mut Self {
+    /// Returns the underlying JSON value of the request
+    ///
+    /// ## Returns
+    ///
+    /// A reference to the internal JSON value
+    pub fn as_json(&self) -> &serde_json::Value {
+        &self.request
+    }
+
+    /// Returns a pretty-printed JSON string representation of the request
+    ///
+    /// ## Returns
+    ///
+    /// A formatted JSON string of the request
+    pub fn as_string_pretty(&self) -> String {
+        serde_json::to_string_pretty(&self.request).unwrap_or_default()
+    }
+
+    /// Sets the messages for the request
+    ///
+    /// ## Arguments
+    ///
+    /// * `messages` - The OllamaMessages object containing the conversation history
+    ///
+    /// ## Returns
+    ///
+    /// A mutable reference to self for method chaining
+    pub fn set_messages(&mut self, messages: OllamaMessages) -> &mut Self {
         self.request["messages"] = messages.as_json().clone();
         self
     }
 
+    /// Adds a single message to the request's message array
+    ///
+    /// If the messages array doesn't exist yet, it will be created.
+    ///
+    /// ## Arguments
+    ///
+    /// * `message` - The OllamaMessage to add to the conversation
+    ///
+    /// ## Returns
+    ///
+    /// A mutable reference to self for method chaining
     pub fn push_message(&mut self, message: &OllamaMessage) -> &mut Self {
         if !self.request.as_object().unwrap().contains_key("messages") {
             self.request["messages"] = serde_json::Value::Array(vec![]);
@@ -49,7 +87,7 @@ impl OllamaRequest {
     /// ## Returns
     ///
     /// A mutable reference to self for method chaining
-    pub fn model(&mut self, model: &str) -> &mut Self {
+    pub fn set_model(&mut self, model: &str) -> &mut Self {
         self.request["model"] = model.into();
         self
     }
@@ -63,21 +101,33 @@ impl OllamaRequest {
     /// ## Returns
     ///
     /// A mutable reference to self for method chaining
-    pub fn prompt(&mut self, prompt: &str) -> &mut Self {
+    pub fn set_prompt(&mut self, prompt: &str) -> &mut Self {
         self.request["prompt"] = prompt.into();
         self
+    }
+
+    /// Returns whether streaming is enabled for this request
+    ///
+    /// ## Returns
+    ///
+    /// `true` if streaming is enabled, `false` otherwise
+    pub fn stream(&self) -> bool {
+        self.request
+            .get("stream")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true)
     }
 
     /// Sets whether the response should be streamed
     ///
     /// ## Arguments
     ///
-    /// * `prompt` - Boolean indicating if the response should be streamed
+    /// * `stream` - Boolean indicating if the response should be streamed
     ///
     /// ## Returns
     ///
     /// A mutable reference to self for method chaining
-    pub fn stream(&mut self, stream: bool) -> &mut Self {
+    pub fn set_stream(&mut self, stream: bool) -> &mut Self {
         self.request["stream"] = stream.into();
         self
     }
@@ -91,21 +141,9 @@ impl OllamaRequest {
     /// ## Returns
     ///
     /// A mutable reference to self for method chaining
-    pub fn format(&mut self, format: &str) -> &mut Self {
+    pub fn set_format(&mut self, format: &str) -> &mut Self {
         self.request["format"] = format.into();
         self
-    }
-
-    /// Returns whether streaming is enabled for this request
-    ///
-    /// ## Returns
-    ///
-    /// `true` if streaming is enabled, `false` otherwise
-    pub fn is_streamed(&self) -> bool {
-        self.request
-            .get("stream")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(true)
     }
 
     /// Adds tools to the request
@@ -117,22 +155,9 @@ impl OllamaRequest {
     /// ## Returns
     ///
     /// A mutable reference to self for method chaining
-    pub fn tools(&mut self, tools: &OllamaTools) -> &mut Self {
+    pub fn set_tools(&mut self, tools: &OllamaTools) -> &mut Self {
         self.request["tools"] = tools.as_json().clone();
         self
-    }
-
-    /// Returns the underlying JSON value of the request
-    ///
-    /// ## Returns
-    ///
-    /// A reference to the internal JSON value
-    pub fn as_json(&self) -> &serde_json::Value {
-        &self.request
-    }
-
-    pub fn to_string_pretty(&self) -> String {
-        serde_json::to_string_pretty(&self.request).unwrap_or_default()
     }
 }
 
@@ -148,19 +173,19 @@ mod tests {
     fn test_is_streamed() {
         let mut request = OllamaRequest::new();
         assert!(
-            request.is_streamed(),
+            request.stream(),
             "New request should be streamed by default"
         );
 
-        request.stream(false);
+        request.set_stream(false);
         assert!(
-            !request.is_streamed(),
+            !request.stream(),
             "Request should not be streamed after disabling"
         );
 
-        request.stream(true);
+        request.set_stream(true);
         assert!(
-            request.is_streamed(),
+            request.stream(),
             "Request should be streamed after enabling"
         );
     }
@@ -176,17 +201,17 @@ mod tests {
         // Create first request - with streaming enabled
         let mut request1 = OllamaRequest::new();
         request1
-            .model("llama3:8b")
-            .prompt("What are the top 5 machine learning frameworks?")
-            .stream(true);
+            .set_model("llama3:8b")
+            .set_prompt("What are the top 5 machine learning frameworks?")
+            .set_stream(true);
 
         // Create second request - without streaming
         let mut request2 = OllamaRequest::new();
         request2
-            .model("gemma3:4b")
-            .prompt("Explain quantum computing in simple terms")
-            .stream(false)
-            .format("json");
+            .set_model("gemma3:4b")
+            .set_prompt("Explain quantum computing in simple terms")
+            .set_stream(false)
+            .set_format("json");
 
         // Print the JSON values for debugging
         println!(
@@ -234,31 +259,31 @@ mod tests {
         // Add parameters to the function
         let mut params = OllamaFunctionParameters::new();
         params
-            .parameter(
+            .push_parameter(
                 "location",
                 "string",
                 "City and state (e.g., Seattle, WA)",
                 true,
             )
-            .parameter(
+            .push_parameter(
                 "unit",
                 "string",
                 "Temperature unit (celsius or fahrenheit)",
                 false,
             );
 
-        weather_function.parameters(params);
+        weather_function.set_parameters(params);
 
         // Add the function to tools
-        tools.add_function(weather_function);
+        tools.push_function(weather_function);
 
         // Create the request with the tools
         let mut request = OllamaRequest::new();
         request
-            .model("llama3:8b")
-            .prompt("What's the weather like in Seattle?")
-            .stream(false)
-            .tools(&tools);
+            .set_model("llama3:8b")
+            .set_prompt("What's the weather like in Seattle?")
+            .set_stream(false)
+            .set_tools(&tools);
 
         // Print the JSON for debugging
         println!(
