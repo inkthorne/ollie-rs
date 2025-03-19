@@ -291,6 +291,8 @@ mod tests {
             .push_message(&message);
         println!("---\nrequest: {}", request.to_string_pretty());
 
+        let mut forwarded_tool_call = OllamaMessage::new();
+
         // Generate a response using the request with tools
         let mut accumulated_response = String::new();
         let result = ollama
@@ -308,6 +310,7 @@ mod tests {
                             let tool_call = tool_calls.tool_call(i).unwrap();
                             println!("---\ntool_call: {}", tool_call.as_string_pretty());
                         }
+                        forwarded_tool_call = message.into();
                     });
                 });
             })
@@ -321,6 +324,33 @@ mod tests {
 
         // Print the accumulated response for manual inspection
         println!("Tool response: {}", accumulated_response);
+
+        let mut tool_response = OllamaMessage::new();
+        tool_response
+            .set_role("tool")
+            .set_content("{ \"temperature\": \"40°C\"")
+            .set_name("get_current_weather");
+
+        request.push_message(&forwarded_tool_call);
+        request.push_message(&tool_response);
+        println!("---\n2nd request: {}", request.to_string_pretty());
+
+        // Generate a 2nd response using context from the tool
+        let mut accumulated_response = String::new();
+        let result = ollama
+            .chat(&request, |response| {
+                response
+                    .response()
+                    .map(|r| accumulated_response.push_str(r));
+
+                println!("---\nresponse: {}", response.as_string_pretty());
+            })
+            .await;
+
+        assert!(result.is_ok());
+
+        // Print the accumulated response for manual inspection
+        println!("2nd response: {}", accumulated_response);
 
         // Note: In a real test with a mocked Ollama server, we would verify that:
         // 1. The tool was called with the appropriate parameters
