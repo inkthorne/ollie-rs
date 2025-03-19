@@ -1,9 +1,8 @@
 use ollie_rs::ollama::Ollama;
 use ollie_rs::request::OllamaRequest;
-use std::error::Error;
 use std::io::{self, Write};
 
-async fn simple_generate_example() -> Result<(), Box<dyn Error>> {
+async fn simple_generate_example() {
     // Create a default Ollama client (connects to 127.0.0.1:11434)
     let ollama = Ollama::default();
 
@@ -26,29 +25,19 @@ async fn simple_generate_example() -> Result<(), Box<dyn Error>> {
                 return;
             }
 
-            // Extract the response text and append it to our accumulated response
+            // Extract the response text and print it
             response.response().map(|text| {
                 print!("{}", text); // Print each chunk as it arrives
                 io::stdout().flush().unwrap();
             });
         })
-        .await?;
+        .await
+        .unwrap();
 
-    Ok(())
+    println!("\n");
 }
 
 #[tokio::main]
 async fn main() {
-    /*
-    // Run the async function in a tokio runtime
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(async {
-        if let Err(e) = simple_generate_example().await {
-            eprintln!("Error: {}", e);
-        }
-    });
-    */
-    simple_generate_example().await.unwrap_or_else(|e| {
-        eprintln!("Error: {}", e);
-    });
+    simple_generate_example().await;
 }
