@@ -185,7 +185,7 @@ mod tests {
         request
             .set_model("gemma3:1b")
             .set_prompt("What is the capital of France? respond in json")
-            .set_stream(false)
+            .set_stream(true)
             .set_format("json");
 
         let mut accumulated_response = String::new();

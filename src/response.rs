@@ -63,6 +63,15 @@ impl OllamaResponse {
         self.response.get("done")?.as_bool()
     }
 
+    /// Gets the error message from the response if present
+    ///
+    /// ## Returns
+    ///
+    /// The error message as a string, or None if the error field is not present or not a string.
+    pub fn error(&self) -> Option<&str> {
+        self.response.get("error")?.as_str()
+    }
+
     /// Extracts the message from the response and converts it to an OllamaMessage
     ///
     /// ## Returns

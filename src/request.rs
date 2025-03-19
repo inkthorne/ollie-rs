@@ -106,6 +106,15 @@ impl OllamaRequest {
         self
     }
 
+    /// Returns the prompt text from the request
+    ///
+    /// ## Returns
+    ///
+    /// The prompt string if set, or None if not set
+    pub fn prompt(&self) -> Option<&str> {
+        self.request.get("prompt")?.as_str()
+    }
+
     /// Returns whether streaming is enabled for this request
     ///
     /// ## Returns
