@@ -33,9 +33,51 @@ impl OllamaSession {
         }
     }
 
+    /// Adds an assistant message to the conversation.
+    ///
+    /// Assistant messages represent responses from the AI assistant
+    /// and are included in the conversation history.
+    ///
+    /// # Arguments
+    ///
+    /// * `content` - The content of the assistant message.
+    pub fn assistant(&mut self, content: &str) {
+        let mut message = OllamaMessage::new();
+        message.set_role("assistant").set_content(content);
+        self.request.push_message(&message);
+    }
+
+    /// Adds a user message to the conversation.
+    ///
+    /// User messages represent queries or statements from the user
+    /// and are included in the conversation history.
+    ///
+    /// # Arguments
+    ///
+    /// * `content` - The content of the user message.
+    pub fn user(&mut self, content: &str) {
+        let mut message = OllamaMessage::new();
+        message.set_role("user").set_content(content);
+        self.request.push_message(&message);
+    }
+
+    /// Adds a system message to the conversation.
+    ///
+    /// System messages provide instructions or context to the model
+    /// about how it should behave throughout the conversation.
+    ///
+    /// # Arguments
+    ///
+    /// * `content` - The content of the system message.
+    pub fn system(&mut self, content: &str) {
+        let mut message = OllamaMessage::new();
+        message.set_role("system").set_content(content);
+        self.request.push_message(&message);
+    }
+
     /// Sends a prompt to the model and processes the response.
     ///
-    /// This method sends the user's prompt to the Ollama model, processes the
+    /// This method sends the prompt to the Ollama model, processes the
     /// streaming response, and updates the conversation history.
     ///
     /// # Arguments
@@ -48,14 +90,10 @@ impl OllamaSession {
     ///
     /// * `Ok(())` - If the prompt was processed successfully.
     /// * `Err(String)` - If an error occurred, containing the error message.
-    pub async fn prompt<F>(&mut self, prompt: &str, mut callback: F) -> Result<(), String>
+    pub async fn update<F>(&mut self, mut callback: F) -> Result<(), String>
     where
         F: FnMut(&str),
     {
-        let mut message = OllamaMessage::new();
-        message.set_role("user").set_content(prompt);
-        self.request.push_message(&message);
-
         // Accumulate all the content from responses
         let mut accumulated_content = String::new();
 
