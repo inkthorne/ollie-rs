@@ -5,7 +5,9 @@ use tokio::time::{Duration, sleep};
 #[tokio::main]
 async fn main() {
     let mut session1 = OllamaSession::new("gemma3:4b");
+    session1.options().set_num_ctx(20000);
     let mut session2 = OllamaSession::new("gemma3:4b");
+    session2.options().set_num_ctx(20000);
 
     let mut response1 = String::new();
     let mut response2 = "Hello there! How are you doing today?".to_string();
@@ -25,7 +27,7 @@ async fn main() {
             .unwrap();
 
         // Sleep for 10 seconds
-        sleep(Duration::from_secs(10)).await;
+        // sleep(Duration::from_secs(10)).await;
 
         println!("\n\n ----- FRED:\n");
 
@@ -41,6 +43,6 @@ async fn main() {
             .unwrap();
 
         // Sleep for 10 seconds
-        sleep(Duration::from_secs(10)).await;
+        // sleep(Duration::from_secs(10)).await;
     }
 }

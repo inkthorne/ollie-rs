@@ -1,5 +1,5 @@
 use crate::ollama::Ollama;
-use crate::{message::OllamaMessage, request::OllamaRequest};
+use crate::{message::OllamaMessage, option::OllamaOptions, request::OllamaRequest};
 
 //============================================================================
 // OllamaSession
@@ -11,6 +11,7 @@ use crate::{message::OllamaMessage, request::OllamaRequest};
 pub struct OllamaSession {
     ollama: Ollama,
     request: OllamaRequest,
+    options: OllamaOptions,
 }
 
 impl OllamaSession {
@@ -30,7 +31,17 @@ impl OllamaSession {
         OllamaSession {
             ollama: Ollama::default(),
             request,
+            options: OllamaOptions::new(),
         }
+    }
+
+    /// Gets a mutable reference to the options for configuring model behavior.
+    ///
+    /// # Returns
+    ///
+    /// A mutable reference to the `OllamaOptions` instance.
+    pub fn options(&mut self) -> &mut OllamaOptions {
+        &mut self.options
     }
 
     /// Adds an assistant message to the conversation.
@@ -94,6 +105,9 @@ impl OllamaSession {
     where
         F: FnMut(&str),
     {
+        // Apply options to the request
+        self.request.set_options(&self.options);
+
         // Accumulate all the content from responses
         let mut accumulated_content = String::new();
 

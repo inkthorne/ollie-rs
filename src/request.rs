@@ -1,4 +1,5 @@
 use crate::message::{OllamaMessage, OllamaMessages};
+use crate::option::OllamaOptions;
 use crate::tool::OllamaTools;
 
 //============================================================================
@@ -168,6 +169,20 @@ impl OllamaRequest {
         self.request["tools"] = tools.as_json().clone();
         self
     }
+
+    /// Sets the options for the request
+    ///
+    /// ## Arguments
+    ///
+    /// * `options` - The OllamaOptions object containing the options
+    ///
+    /// ## Returns
+    ///
+    /// A mutable reference to self for method chaining
+    pub fn set_options(&mut self, options: &OllamaOptions) -> &mut Self {
+        self.request["options"] = options.to_json();
+        self
+    }
 }
 
 //============================================================================
@@ -176,6 +191,7 @@ impl OllamaRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::option::OllamaOptions;
     use crate::tool::{OllamaFunction, OllamaFunctionParameters};
 
     #[test]
@@ -348,6 +364,53 @@ mod tests {
             }
         } else {
             panic!("Expected tools to be an array");
+        }
+    }
+
+    /// Tests creating an OllamaRequest with options
+    ///
+    /// This test verifies that:
+    /// - An OllamaRequest can be created with OllamaOptions
+    /// - The options are properly added to the JSON structure
+    /// - Multiple options can be set and are correctly serialized
+    #[test]
+    fn test_json_request_with_options() {
+        // Create options with multiple settings
+        let mut options = OllamaOptions::new();
+        options.set_num_ctx(2048).set_temperature(0.7);
+
+        // Create request with options
+        let mut request = OllamaRequest::new();
+        request
+            .set_model("llama3:8b")
+            .set_prompt("Write a short story about AI")
+            .set_options(&options);
+
+        // Print the JSON for debugging
+        println!(
+            "---\nRequest with options JSON: {}",
+            serde_json::to_string_pretty(request.as_json()).unwrap()
+        );
+
+        // Verify the request has the expected structure
+        let json = request.as_json();
+        assert_eq!(json["model"], "llama3:8b");
+        assert_eq!(json["prompt"], "Write a short story about AI");
+
+        // Verify options structure
+        assert!(json.as_object().unwrap().contains_key("options"));
+        assert_eq!(json["options"]["num_ctx"], 2048);
+
+        // Use approximate comparison for floating-point value
+        if let Some(temp) = json["options"]["temperature"].as_f64() {
+            let epsilon = 1e-7;
+            assert!(
+                (temp - 0.7).abs() < epsilon,
+                "Temperature {} should be close to 0.7",
+                temp
+            );
+        } else {
+            panic!("Expected temperature to be a floating-point value");
         }
     }
 }
