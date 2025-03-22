@@ -4,8 +4,8 @@ use tokio::time::{Duration, sleep};
 
 #[tokio::main]
 async fn main() {
-    let mut session1 = OllamaSession::new("gemma3:1b");
-    let mut session2 = OllamaSession::new("gemma3:1b");
+    let mut session1 = OllamaSession::new("gemma3:4b");
+    let mut session2 = OllamaSession::new("gemma3:4b");
 
     let mut response1 = String::new();
     let mut response2 = "Hello there! How are you doing today?".to_string();

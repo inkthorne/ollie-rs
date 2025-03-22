@@ -1,6 +1,11 @@
 //============================================================================
 // OllamaToolCall
 //============================================================================
+/// Represents a single tool call from the Ollama API.
+///
+/// This struct wraps a JSON value for a tool call, providing methods
+/// to access the function name and arguments.
+///
 /// ## Example JSON structure
 /// ```json
 /// {
@@ -205,11 +210,23 @@ impl From<&serde_json::Value> for OllamaToolCalls {
 //============================================================================
 // OllamaFunctionParameters
 //============================================================================
+/// Represents the parameters for an Ollama function.
+///
+/// This struct provides a builder pattern for defining the parameter schema
+/// for functions that can be called by the Ollama model. It follows JSON Schema
+/// conventions for defining parameters with types, descriptions, and required flags.
 pub struct OllamaFunctionParameters {
     object: serde_json::Value,
 }
 
 impl OllamaFunctionParameters {
+    /// Creates a new empty set of function parameters.
+    ///
+    /// Initializes with an empty properties object and required array.
+    ///
+    /// ## Returns
+    ///
+    /// A new OllamaFunctionParameters with default JSON schema structure.
     pub fn new() -> Self {
         Self {
             object: serde_json::json!({
@@ -271,11 +288,25 @@ impl OllamaFunctionParameters {
 //============================================================================
 // OllamaFunction
 //============================================================================
+/// Represents a function that can be called by the Ollama model.
+///
+/// This struct defines a function with a name, description, and parameters
+/// that conforms to the Ollama API's function calling specification.
 pub struct OllamaFunction {
     object: serde_json::Value,
 }
 
 impl OllamaFunction {
+    /// Creates a new function with the given name and description.
+    ///
+    /// ## Arguments
+    ///
+    /// * `name` - The name of the function that will be called by the model
+    /// * `description` - A description of what the function does
+    ///
+    /// ## Returns
+    ///
+    /// A new OllamaFunction with the specified name and description.
     pub fn new(name: &str, description: &str) -> Self {
         Self {
             object: serde_json::json!({
@@ -287,6 +318,17 @@ impl OllamaFunction {
             }),
         }
     }
+
+    /// Sets the parameters for this function.
+    ///
+    /// ## Arguments
+    ///
+    /// * `parameters` - The OllamaFunctionParameters that define the schema
+    ///    for the function's parameters
+    ///
+    /// ## Returns
+    ///
+    /// A mutable reference to self for method chaining.
     pub fn set_parameters(&mut self, parameters: OllamaFunctionParameters) -> &mut Self {
         self.object["function"]["parameters"] = parameters.object;
         self
@@ -296,6 +338,12 @@ impl OllamaFunction {
 //============================================================================
 // OllamaTools
 //============================================================================
+/// A collection of function tools that can be used by Ollama models.
+///
+/// This struct maintains an array of function definitions that can be sent
+/// to Ollama API endpoints to enable function calling capabilities.
+/// It handles the proper formatting of the functions collection and provides
+/// methods for adding functions to the collection.
 pub struct OllamaTools {
     array: serde_json::Value,
 }
