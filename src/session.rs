@@ -62,6 +62,10 @@ impl OllamaSession {
         self.options.num_ctx().unwrap_or(2048)
     }
 
+    pub fn set_context_window_size(&mut self, num_ctx: u32) {
+        self.options.set_num_ctx(num_ctx);
+    }
+
     /// Gets a mutable reference to the options for configuring model behavior.
     ///
     /// # Returns
@@ -129,6 +133,7 @@ impl OllamaSession {
             .chat(&self.request, |response| {
                 response.error().map(|err| {
                     // If there's an error, call the callback with the error message
+                    // TODO: handle this more explicitly, this can break the flow in `example_converation.rs`
                     callback(err);
                 });
 
