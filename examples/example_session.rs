@@ -21,18 +21,22 @@ async fn main() {
         .unwrap();
 
     // Add second user message to the conversation
-    let prompt = "Could you summarize what your previous response in a single sentence?";
+    let prompt = "Could you summarize your previous response in a single sentence?";
     println!("\n\n *** ASKING: {}\n", prompt);
     session.user(prompt);
 
     // Call update() again to process the response
-    session
-        .update(|response_text| {
-            print!("{}", response_text);
+    let response = session
+        .update(|content| {
+            print!("{}", content);
             io::stdout().flush().unwrap();
         })
         .await
         .unwrap();
+
+    response.map(|text| {
+        println!("\n\nSummary: {}", text.as_string_pretty());
+    });
 
     println!("\n\nDone!");
 }

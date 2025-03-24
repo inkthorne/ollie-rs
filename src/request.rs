@@ -67,7 +67,7 @@ impl OllamaRequest {
     /// ## Returns
     ///
     /// A mutable reference to self for method chaining
-    pub fn push_message(&mut self, message: &OllamaMessage) -> &mut Self {
+    pub fn add_message(&mut self, message: &OllamaMessage) -> &mut Self {
         if !self.request.as_object().unwrap().contains_key("messages") {
             self.request["messages"] = serde_json::Value::Array(vec![]);
         }

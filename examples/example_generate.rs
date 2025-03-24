@@ -17,7 +17,7 @@ async fn simple_generate_example() {
     });
 
     // Send the request and handle the response
-    ollama
+    let response = ollama
         .generate(&request, |response| {
             // Check if the response is an error
             if let Some(err) = response.error() {
@@ -33,6 +33,10 @@ async fn simple_generate_example() {
         })
         .await
         .unwrap();
+
+    response.map(|text| {
+        println!("\n\nSummary: {}", text.as_string_pretty());
+    });
 
     println!("\n");
 }

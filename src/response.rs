@@ -45,6 +45,12 @@ pub struct OllamaResponse {
 }
 
 impl OllamaResponse {
+    pub fn new() -> Self {
+        Self {
+            response: serde_json::Value::Null,
+        }
+    }
+
     /// Returns the underlying JSON response as a reference to a serde_json::Value
     ///
     /// ## Returns

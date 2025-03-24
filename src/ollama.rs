@@ -96,9 +96,9 @@ impl Ollama {
         &self,
         prompt: &OllamaRequest,
         response_handler: F,
-    ) -> Result<(), reqwest::Error>
+    ) -> Result<Option<OllamaResponse>, reqwest::Error>
     where
-        F: FnMut(OllamaResponse),
+        F: FnMut(&OllamaResponse),
     {
         let url = format!("http://{}/api/generate", self.server_addr);
         self.send_request(&url, prompt, response_handler).await
@@ -122,14 +122,14 @@ impl Ollama {
     /// It handles streaming responses by collecting chunks until completion.
     pub async fn chat<F>(
         &self,
-        prompt: &OllamaRequest,
+        request: &OllamaRequest,
         response_handler: F,
-    ) -> Result<(), reqwest::Error>
+    ) -> Result<Option<OllamaResponse>, reqwest::Error>
     where
-        F: FnMut(OllamaResponse),
+        F: FnMut(&OllamaResponse),
     {
         let url = format!("http://{}/api/chat", self.server_addr);
-        self.send_request(&url, prompt, response_handler).await
+        self.send_request(&url, request, response_handler).await
     }
 
     /// Sends a request to a specific Ollama API endpoint and processes the response
@@ -152,23 +152,26 @@ impl Ollama {
     pub async fn send_request<F>(
         &self,
         url: &str,
-        prompt: &OllamaRequest,
+        request: &OllamaRequest,
         mut response_handler: F,
-    ) -> Result<(), reqwest::Error>
+    ) -> Result<Option<OllamaResponse>, reqwest::Error>
     where
-        F: FnMut(OllamaResponse),
+        F: FnMut(&OllamaResponse),
     {
         let mut response = self
             .http_client
             .post(url)
-            .json(prompt.as_json())
+            .json(request.as_json())
             .send()
             .await?;
+
+        let mut response_opt: Option<OllamaResponse> = Option::None;
 
         while let Some(http_chunk) = response.chunk().await? {
             match OllamaResponse::try_from(&http_chunk) {
                 Ok(ollama_response) => {
-                    response_handler(ollama_response);
+                    response_handler(&ollama_response);
+                    response_opt = Some(ollama_response);
                 }
                 Err(_) => {
                     continue;
@@ -176,7 +179,7 @@ impl Ollama {
             }
         }
 
-        Ok(())
+        Ok(response_opt)
     }
 }
 
@@ -246,7 +249,7 @@ mod tests {
         request
             .set_model("gemma3:1b")
             .set_stream(true)
-            .push_message(&message);
+            .add_message(&message);
 
         let mut accumulated_content = String::new();
         let result = ollama
@@ -308,7 +311,7 @@ mod tests {
             .set_model("llama3.2")
             .set_stream(false)
             .set_tools(&tools)
-            .push_message(&message);
+            .add_message(&message);
         println!("---\nrequest: {}", request.as_string_pretty());
 
         let mut forwarded_tool_call = OllamaMessage::new();
@@ -351,8 +354,8 @@ mod tests {
             .set_content("{ \"temperature\": \"40°C\"")
             .set_name("get_current_weather");
 
-        request.push_message(&forwarded_tool_call);
-        request.push_message(&tool_response);
+        request.add_message(&forwarded_tool_call);
+        request.add_message(&tool_response);
         println!("---\n2nd request: {}", request.as_string_pretty());
 
         // Generate a 2nd response using context from the tool

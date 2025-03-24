@@ -15,12 +15,12 @@ async fn simple_chat_example() {
     let mut request = OllamaRequest::new();
     request
         .set_model("gemma3:1b") // Use the model available on your Ollama server
-        .push_message(&message);
+        .add_message(&message);
 
     println!("\nQuestion: Why is the sky blue?\n");
 
     // Send the chat request and handle the response
-    ollama
+    let response = ollama
         .chat(&request, |response| {
             // Check if the response is an error
             if let Some(err) = response.error() {
@@ -36,6 +36,10 @@ async fn simple_chat_example() {
         })
         .await
         .unwrap();
+
+    response.map(|text| {
+        println!("\n\nSummary: {}", text.as_string_pretty());
+    });
 
     println!("\n");
 }

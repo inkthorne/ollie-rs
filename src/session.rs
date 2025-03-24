@@ -1,4 +1,5 @@
 use crate::ollama::Ollama;
+use crate::response::OllamaResponse;
 use crate::{message::OllamaMessage, option::OllamaOptions, request::OllamaRequest};
 
 //============================================================================
@@ -55,7 +56,7 @@ impl OllamaSession {
     pub fn assistant(&mut self, content: &str) {
         let mut message = OllamaMessage::new();
         message.set_role("assistant").set_content(content);
-        self.request.push_message(&message);
+        self.request.add_message(&message);
     }
 
     /// Adds a user message to the conversation.
@@ -69,7 +70,7 @@ impl OllamaSession {
     pub fn user(&mut self, content: &str) {
         let mut message = OllamaMessage::new();
         message.set_role("user").set_content(content);
-        self.request.push_message(&message);
+        self.request.add_message(&message);
     }
 
     /// Adds a system message to the conversation.
@@ -83,7 +84,7 @@ impl OllamaSession {
     pub fn system(&mut self, content: &str) {
         let mut message = OllamaMessage::new();
         message.set_role("system").set_content(content);
-        self.request.push_message(&message);
+        self.request.add_message(&message);
     }
 
     /// Sends a prompt to the model and processes the response.
@@ -101,7 +102,7 @@ impl OllamaSession {
     ///
     /// * `Ok(())` - If the prompt was processed successfully.
     /// * `Err(String)` - If an error occurred, containing the error message.
-    pub async fn update<F>(&mut self, mut callback: F) -> Result<(), String>
+    pub async fn update<F>(&mut self, mut callback: F) -> Result<Option<OllamaResponse>, String>
     where
         F: FnMut(&str),
     {
@@ -128,7 +129,7 @@ impl OllamaSession {
             })
             .await
         {
-            Ok(_) => {
+            Ok(response) => {
                 // Create an assistant message with the accumulated content
                 let mut assistant_message = OllamaMessage::new();
                 assistant_message
@@ -136,9 +137,9 @@ impl OllamaSession {
                     .set_content(&accumulated_content);
 
                 // Add the assistant message to the request for context in future exchanges
-                self.request.push_message(&assistant_message);
+                self.request.add_message(&assistant_message);
 
-                Ok(())
+                Ok(response)
             }
             Err(e) => Err(e.to_string()),
         }
