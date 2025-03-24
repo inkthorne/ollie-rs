@@ -45,6 +45,11 @@ pub struct OllamaResponse {
 }
 
 impl OllamaResponse {
+    /// Creates a new empty OllamaResponse instance
+    ///
+    /// ## Returns
+    ///
+    /// A new OllamaResponse with a null JSON value.
     pub fn new() -> Self {
         Self {
             response: serde_json::Value::Null,
@@ -79,6 +84,15 @@ impl OllamaResponse {
         self.response.get("message")?.get("content")?.as_str()
     }
 
+    /// Gets the number of tokens generated in the response
+    ///
+    /// ## Returns
+    ///
+    /// The eval_count as a u64, or None if the field is not present.
+    pub fn eval_count(&self) -> Option<u64> {
+        self.response.get("eval_count")?.as_u64()
+    }
+
     /// Checks if the response is done/completed
     ///
     /// ## Returns
@@ -106,6 +120,15 @@ impl OllamaResponse {
         self.response.get("message").map(OllamaMessage::from)
     }
 
+    /// Gets the number of tokens in the prompt
+    ///
+    /// ## Returns
+    ///
+    /// The prompt_eval_count as a u64, or None if the field is not present.
+    pub fn prompt_eval_count(&self) -> Option<u64> {
+        self.response.get("prompt_eval_count")?.as_u64()
+    }
+
     /// Gets the response text from the response
     ///
     /// ## Returns
@@ -113,6 +136,19 @@ impl OllamaResponse {
     /// The response text as a string, or None if the response field is not present or not a string.
     pub fn response(&self) -> Option<&str> {
         self.response.get("response")?.as_str()
+    }
+
+    /// Calculates the total number of tokens used in the prompt and response
+    ///
+    /// ## Returns
+    ///
+    /// The sum of prompt tokens and response tokens as a u64.
+    /// If either count is not available, it defaults to 0.
+    pub fn tokens_used(&self) -> u64 {
+        let eval_count = self.eval_count().unwrap_or(0);
+        let prompt_eval_count = self.prompt_eval_count().unwrap_or(0);
+
+        eval_count + prompt_eval_count
     }
 }
 

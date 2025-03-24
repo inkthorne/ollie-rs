@@ -34,8 +34,8 @@ async fn simple_generate_example() {
         .await
         .unwrap();
 
-    response.map(|text| {
-        println!("\n\nSummary: {}", text.as_string_pretty());
+    response.map(|response| {
+        println!("\n\ntokens used: {}", response.tokens_used());
     });
 
     println!("\n");

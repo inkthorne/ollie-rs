@@ -38,6 +38,15 @@ impl OllamaOptions {
         }
     }
 
+    /// Returns the current context window size setting.
+    ///
+    /// # Returns
+    ///
+    /// An Option containing the number of tokens for context, or None if not set
+    pub fn num_ctx(&self) -> Option<u32> {
+        self.num_ctx
+    }
+
     /// Sets the context window size for the model.
     ///
     /// # Arguments

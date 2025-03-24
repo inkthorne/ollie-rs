@@ -34,9 +34,13 @@ async fn main() {
         .await
         .unwrap();
 
-    response.map(|text| {
-        println!("\n\nSummary: {}", text.as_string_pretty());
+    response.map(|response| {
+        println!(
+            "\n\n *** STATS: tokens used: {} of {}",
+            response.tokens_used(),
+            session.context_window_size()
+        );
     });
 
-    println!("\n\nDone!");
+    println!("\n");
 }

@@ -36,15 +36,6 @@ impl OllamaSession {
         }
     }
 
-    /// Gets a mutable reference to the options for configuring model behavior.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to the `OllamaOptions` instance.
-    pub fn options(&mut self) -> &mut OllamaOptions {
-        &mut self.options
-    }
-
     /// Adds an assistant message to the conversation.
     ///
     /// Assistant messages represent responses from the AI assistant
@@ -57,6 +48,27 @@ impl OllamaSession {
         let mut message = OllamaMessage::new();
         message.set_role("assistant").set_content(content);
         self.request.add_message(&message);
+    }
+
+    /// Gets the context window size for the model.
+    ///
+    /// Returns the number of tokens that can be processed in a single request.
+    /// If not explicitly set in options, defaults to 2048 tokens.
+    ///
+    /// # Returns
+    ///
+    /// The context window size as a u32 value.
+    pub fn context_window_size(&self) -> u32 {
+        self.options.num_ctx().unwrap_or(2048)
+    }
+
+    /// Gets a mutable reference to the options for configuring model behavior.
+    ///
+    /// # Returns
+    ///
+    /// A mutable reference to the `OllamaOptions` instance.
+    pub fn options(&mut self) -> &mut OllamaOptions {
+        &mut self.options
     }
 
     /// Adds a user message to the conversation.
