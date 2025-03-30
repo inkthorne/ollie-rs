@@ -7,8 +7,8 @@ async fn main() {
     const MODEL: &str = "gemma3:4b";
     const CONTEXT_WINDOW_SIZE: u32 = 24 * 1024;
 
-    let mut session1 = OllamaSession::new(MODEL);
-    let mut session2 = OllamaSession::new(MODEL);
+    let mut session1 = OllamaSession::new(MODEL, None);
+    let mut session2 = OllamaSession::new(MODEL, None);
     session1.set_context_window_size(CONTEXT_WINDOW_SIZE);
     session2.set_context_window_size(CONTEXT_WINDOW_SIZE);
 

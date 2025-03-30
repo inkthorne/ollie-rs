@@ -21,16 +21,23 @@ impl OllamaSession {
     /// # Arguments
     ///
     /// * `model` - The name of the Ollama model to use for this chat session.
+    /// * `server_address` - Optional server address (e.g., "127.0.0.1:11434") where the Ollama server is running.
+    ///                      If None, the default address (127.0.0.1:11434) will be used.
     ///
     /// # Returns
     ///
     /// A new `OllamaChat` instance configured to use the specified model.
-    pub fn new(model: &str) -> Self {
+    pub fn new(model: &str, server_address: Option<&str>) -> Self {
         let mut request = OllamaRequest::new();
         request.set_model(model);
 
+        let ollama = match server_address {
+            Some(addr) => Ollama::new(addr),
+            None => Ollama::default(),
+        };
+
         OllamaSession {
-            ollama: Ollama::default(),
+            ollama,
             request,
             options: OllamaOptions::new(),
         }

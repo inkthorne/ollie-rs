@@ -54,14 +54,18 @@ impl Ollama {
     ///
     /// ## Arguments
     ///
-    /// * `server_addr` - Socket address (IP and port) where the Ollama server is running
+    /// * `server_addr_str` - String address (e.g., "127.0.0.1:11434") where the Ollama server is running
     ///
     /// ## Returns
     ///
     /// A new `Ollama` instance connected to the specified server address
-    pub fn new(server_addr: SocketAddr) -> Self {
+    ///
+    /// ## Panics
+    ///
+    /// This function will panic if the provided string cannot be parsed as a valid socket address
+    pub fn new(server_addr_str: &str) -> Self {
         Self {
-            server_addr,
+            server_addr: SocketAddr::from_str(server_addr_str).unwrap(),
             http_client: reqwest::Client::new(),
         }
     }
