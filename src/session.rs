@@ -16,25 +16,44 @@ pub struct OllamaSession {
 }
 
 impl OllamaSession {
+    /// Creates a new chat session with the specified model using the local Ollama server.
+    ///
+    /// This method connects to the default local Ollama server address (127.0.0.1:11434).
+    ///
+    /// # Arguments
+    ///
+    /// * `model` - The name of the Ollama model to use for this chat session.
+    ///
+    /// # Returns
+    ///
+    /// A new `OllamaSession` instance configured to use the specified model with the local server.
+    pub fn local(model: &str) -> Self {
+        let mut request = OllamaRequest::new();
+        request.set_model(model);
+
+        let ollama = Ollama::default();
+
+        OllamaSession {
+            ollama,
+            request,
+            options: OllamaOptions::new(),
+        }
+    }
+
     /// Creates a new chat session with the specified model.
     ///
     /// # Arguments
     ///
     /// * `model` - The name of the Ollama model to use for this chat session.
-    /// * `server_address` - Optional server address (e.g., "127.0.0.1:11434") where the Ollama server is running.
-    ///                      If None, the default address (127.0.0.1:11434) will be used.
+    /// * `server_address` - The server address (e.g., "127.0.0.1:11434") where the Ollama server is running.
     ///
     /// # Returns
     ///
     /// A new `OllamaChat` instance configured to use the specified model.
-    pub fn new(model: &str, server_address: Option<&str>) -> Self {
+    pub fn remote(model: &str, server_address: &str) -> Self {
+        let ollama = Ollama::new(server_address);
         let mut request = OllamaRequest::new();
         request.set_model(model);
-
-        let ollama = match server_address {
-            Some(addr) => Ollama::new(addr),
-            None => Ollama::default(),
-        };
 
         OllamaSession {
             ollama,

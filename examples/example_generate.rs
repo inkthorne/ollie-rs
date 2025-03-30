@@ -9,7 +9,7 @@ async fn simple_generate_example() {
     // Create and configure the request
     let mut request = OllamaRequest::new();
     request
-        .set_model("gemma3:1b") // Use the model available on your Ollama server
+        .set_model("gemma3:4b") // Use the model available on your Ollama server
         .set_prompt("Why is the sky blue?");
 
     request.prompt().map(|prompt| {
