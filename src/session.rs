@@ -16,6 +16,26 @@ pub struct OllamaSession {
 }
 
 impl OllamaSession {
+    /// Creates a new chat session with the specified model.
+    ///
+    /// This method checks for the OLLIE_HOST environment variable. If set, it connects
+    /// to the server address specified in the environment variable. Otherwise, it
+    /// connects to the default local Ollama server (127.0.0.1:11434).
+    ///
+    /// # Arguments
+    ///
+    /// * `model` - The name of the Ollama model to use for this chat session.
+    ///
+    /// # Returns
+    ///
+    /// A new `OllamaSession` instance configured to use the specified model.
+    pub fn new(model: &str) -> Self {
+        match std::env::var("OLLAMA_SERVER") {
+            Ok(host) => Self::remote(model, &host),
+            Err(_) => Self::local(model),
+        }
+    }
+
     /// Creates a new chat session with the specified model using the local Ollama server.
     ///
     /// This method connects to the default local Ollama server address (127.0.0.1:11434).
