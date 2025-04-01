@@ -12,13 +12,21 @@ async fn main() {
     session.user(prompt);
 
     // Then call update() with just the callback to process the response
-    session
+    let response = session
         .update(|response| {
             print!("{}", response);
             io::stdout().flush().unwrap();
         })
         .await
         .unwrap();
+
+    response.map(|response| {
+        println!(
+            "\n\n *** STATS: tokens used: {} of {}",
+            response.tokens_used(),
+            session.context_window_size()
+        );
+    });
 
     // Add second user message to the conversation
     let prompt = "Could you summarize your previous response in a single sentence?";

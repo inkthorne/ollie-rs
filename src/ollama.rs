@@ -169,13 +169,27 @@ impl Ollama {
             .send()
             .await?;
 
-        let mut response_opt: Option<OllamaResponse> = Option::None;
+        let mut last_response: Option<OllamaResponse> = Option::None;
+        let mut accumulated_content = String::new();
 
         while let Some(http_chunk) = response.chunk().await? {
             match OllamaResponse::try_from(&http_chunk) {
                 Ok(ollama_response) => {
+                    // Forward the response to the streaming handler.
                     response_handler(&ollama_response);
-                    response_opt = Some(ollama_response);
+
+                    // Accumulate the content (if streaming).
+                    if request.stream() {
+                        ollama_response.response().map(|r| {
+                            accumulated_content.push_str(r);
+                        });
+
+                        ollama_response.content().map(|c| {
+                            accumulated_content.push_str(c);
+                        });
+                    }
+
+                    last_response = Some(ollama_response);
                 }
                 Err(_) => {
                     continue;
@@ -183,7 +197,18 @@ impl Ollama {
             }
         }
 
-        Ok(response_opt)
+        // Put the accumulated content into the last response (if streaming).
+        if request.stream() {
+            if let Some(ref mut r) = last_response {
+                if r.message().is_some() {
+                    r.set_content(&accumulated_content);
+                } else {
+                    r.set_response(&accumulated_content);
+                }
+            }
+        }
+
+        Ok(last_response)
     }
 }
 

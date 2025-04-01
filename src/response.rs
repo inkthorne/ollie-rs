@@ -56,6 +56,19 @@ impl OllamaResponse {
         }
     }
 
+    /// Creates a new OllamaResponse instance from a JSON value
+    ///
+    /// ## Arguments
+    ///
+    /// * `response` - The JSON value to wrap in the OllamaResponse.
+    ///
+    /// ## Returns
+    ///
+    /// A new OllamaResponse containing the provided JSON value.
+    pub fn from_json(response: serde_json::Value) -> Self {
+        Self { response }
+    }
+
     /// Returns the underlying JSON response as a reference to a serde_json::Value
     ///
     /// ## Returns
@@ -136,6 +149,34 @@ impl OllamaResponse {
     /// The response text as a string, or None if the response field is not present or not a string.
     pub fn response(&self) -> Option<&str> {
         self.response.get("response")?.as_str()
+    }
+
+    /// Sets the response text in the underlying JSON data
+    ///
+    /// ## Arguments
+    ///
+    /// * `text` - The text to set as the response value
+    ///
+    /// This method modifies the underlying JSON data by setting the "response" field
+    /// to the provided string value.
+    pub fn set_response(&mut self, text: &str) {
+        self.response["response"] = text.into();
+    }
+
+    /// Sets the content field in the message object of the response
+    ///
+    /// ## Arguments
+    ///
+    /// * `content` - The text to set as the content value
+    ///
+    /// This method modifies the underlying JSON data by setting the "content" field
+    /// within the "message" object of the response. If the message object doesn't
+    /// exist, it will be created.
+    pub fn set_content(&mut self, content: &str) {
+        if !self.response.get("message").is_some() {
+            self.response["message"] = serde_json::json!({});
+        }
+        self.response["message"]["content"] = content.into();
     }
 
     /// Calculates the total number of tokens used in the prompt and response
