@@ -1,11 +1,14 @@
 use ollie_rs::message::OllamaMessage;
 use ollie_rs::ollama::Ollama;
+use ollie_rs::option::OllamaOptions;
 use ollie_rs::request::OllamaRequest;
 use std::io::{self, Write};
 
 async fn simple_chat_example() {
     // Create a default Ollama client (connects to 127.0.0.1:11434)
     let ollama = Ollama::default();
+    let mut options = OllamaOptions::new();
+    options.set_seed(42); // Set a seed for reproducibility
 
     // Create a message with the same question as in example1.rs
     let mut message = OllamaMessage::new();
@@ -15,6 +18,7 @@ async fn simple_chat_example() {
     let mut request = OllamaRequest::new();
     request
         .set_model("gemma3:4b") // Use the model available on your Ollama server
+        .set_options(&options)
         .add_message(&message);
 
     println!("\nQuestion: Why is the sky blue?\n");

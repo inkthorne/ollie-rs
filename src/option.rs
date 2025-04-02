@@ -19,6 +19,12 @@ pub struct OllamaOptions {
     /// while values closer to 1 make output more creative and diverse.
     #[serde(skip_serializing_if = "Option::is_none")]
     temperature: Option<f32>,
+
+    /// The random seed to use for generation.
+    ///
+    /// Setting a specific seed value enables deterministic outputs for the same input.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    seed: Option<u32>,
 }
 
 impl OllamaOptions {
@@ -35,6 +41,7 @@ impl OllamaOptions {
         OllamaOptions {
             num_ctx: None,
             temperature: None,
+            seed: None,
         }
     }
 
@@ -75,6 +82,29 @@ impl OllamaOptions {
         self
     }
 
+    /// Returns the current seed value.
+    ///
+    /// # Returns
+    ///
+    /// An Option containing the seed value, or None if not set
+    pub fn seed(&self) -> Option<u32> {
+        self.seed
+    }
+
+    /// Sets the random seed for generation.
+    ///
+    /// # Arguments
+    ///
+    /// * `seed` - A u32 value that sets the random seed
+    ///
+    /// # Returns
+    ///
+    /// A mutable reference to self for method chaining
+    pub fn set_seed(&mut self, seed: u32) -> &mut Self {
+        self.seed = Some(seed);
+        self
+    }
+
     /// Converts the options to a JSON value for serialization.
     ///
     /// # Returns
@@ -102,17 +132,19 @@ mod tests {
         assert!(json.is_object());
         assert!(json.get("num_ctx").is_none());
         assert!(json.get("temperature").is_none());
+        assert!(json.get("seed").is_none());
     }
 
     #[test]
     fn test_option_to_json_with_values() {
         let mut options = OllamaOptions::new();
-        options.set_num_ctx(4096).set_temperature(0.75);
+        options.set_num_ctx(4096).set_temperature(0.75).set_seed(42);
         let json = options.to_json();
         println!("{:?}", json);
 
         assert!(json.is_object());
         assert_eq!(json["num_ctx"], 4096);
         assert_eq!(json["temperature"], 0.75);
+        assert_eq!(json["seed"], 42);
     }
 }
