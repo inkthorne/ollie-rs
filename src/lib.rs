@@ -1,3 +1,4 @@
+pub mod gemini;
 pub mod message;
 pub mod ollama;
 pub mod option;
