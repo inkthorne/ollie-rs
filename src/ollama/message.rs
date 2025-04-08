@@ -1,4 +1,4 @@
-use crate::tool::OllamaToolCalls;
+use super::tool::OllamaToolCalls;
 
 //============================================================================
 // OllamaMessage

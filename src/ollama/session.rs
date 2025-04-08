@@ -1,6 +1,6 @@
-use crate::ollama::Ollama;
-use crate::response::OllamaResponse;
-use crate::{message::OllamaMessage, option::OllamaOptions, request::OllamaRequest};
+use super::ollama::Ollama;
+use super::response::OllamaResponse;
+use super::{message::OllamaMessage, option::OllamaOptions, request::OllamaRequest};
 
 //============================================================================
 // OllamaSession

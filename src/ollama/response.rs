@@ -1,4 +1,4 @@
-use crate::message::OllamaMessage;
+use super::message::OllamaMessage;
 use bytes::Bytes;
 use serde::Deserialize;
 

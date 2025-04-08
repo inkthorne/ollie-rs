@@ -1,4 +1,4 @@
-use ollie_rs::ollama::Ollama;
+use ollie_rs::Ollama;
 use ollie_rs::request::OllamaRequest;
 use std::io::{self, Write};
 

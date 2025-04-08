@@ -1,6 +1,6 @@
-use crate::message::{OllamaMessage, OllamaMessages};
-use crate::option::OllamaOptions;
-use crate::tool::OllamaTools;
+use super::message::{OllamaMessage, OllamaMessages};
+use super::option::OllamaOptions;
+use super::tool::OllamaTools;
 
 //============================================================================
 // OllamaRequest
@@ -190,9 +190,9 @@ impl OllamaRequest {
 //============================================================================
 #[cfg(test)]
 mod tests {
+    use super::super::option::OllamaOptions;
+    use super::super::tool::{OllamaFunction, OllamaFunctionParameters};
     use super::*;
-    use crate::option::OllamaOptions;
-    use crate::tool::{OllamaFunction, OllamaFunctionParameters};
 
     #[test]
     fn test_is_streamed() {

@@ -1,5 +1,5 @@
-use crate::request::OllamaRequest;
-use crate::response::OllamaResponse;
+use super::request::OllamaRequest;
+use super::response::OllamaResponse;
 use serde::Deserialize;
 use std::net::SocketAddr;
 use std::str::FromStr;
@@ -217,11 +217,11 @@ impl Ollama {
 //============================================================================
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::{
+    use super::super::{
         message::OllamaMessage,
         tool::{OllamaFunction, OllamaFunctionParameters, OllamaTools},
     };
+    use super::*;
 
     /// Tests basic text generation functionality with the Ollama API
     ///

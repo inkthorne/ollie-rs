@@ -1,4 +1,4 @@
-use ollie_rs::session::OllamaSession;
+use ollie_rs::OllamaSession;
 use std::io::{self, Write};
 // use tokio::time::{Duration, sleep};
 
