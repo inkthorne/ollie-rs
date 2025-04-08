@@ -4,14 +4,13 @@ use std::env;
 use std::error::Error;
 
 static GEMINI_BASE_URL: &str = "https://generativelanguage.googleapis.com/v1beta/models";
-static ERROR_MISSING_API_KEY: &str = "Error: GEMINI_API_KEY environment variable is not set.";
 
 // ===
 // STRUCT: Gemini
 // ===
 
 pub struct Gemini {
-    model: String,
+    api_key: String,
 
     /// HTTP client used for making requests to the Gemini server.
     https_client: reqwest::Client,
@@ -27,46 +26,28 @@ impl Gemini {
     /// # Returns
     ///
     /// * `Gemini` - An instance of the Gemini struct initialized with the default model "gemma-3-27b-it".
-    pub fn new() -> Self {
+    pub fn new(api_key: &str) -> Self {
         Gemini {
-            model: "gemma-3-27b-it".to_string(),
+            api_key: api_key.to_string(),
             https_client: reqwest::Client::new(),
         }
-    }
-
-    /// Returns a reference to the currently set model.
-    ///
-    /// # Returns
-    ///
-    /// * `&str` - A string slice referencing the current model.
-    pub fn model(&self) -> &str {
-        &self.model
-    }
-
-    /// Sets a new model to be used for requests.
-    ///
-    /// # Arguments
-    ///
-    /// * `model` - The model name to use for requests. Can be any type that can be converted into a String.
-    ///
-    /// # Returns
-    ///
-    /// * `&mut Self` - A mutable reference to this instance for method chaining.
-    pub fn set_model(&mut self, model: impl Into<String>) -> &mut Self {
-        self.model = model.into();
-        self
     }
 
     /// Sends a content generation request to the Gemini API and returns the response.
     ///
     /// # Arguments
     ///
+    /// * `model` - The model name to use for this specific request.
     /// * `content` - A JSON value containing the request content for the Gemini API.
     ///
     /// # Returns
     ///
     /// * `Result<String, String>` - The API response as a String if successful, or an error message if the request failed.
-    pub async fn generate(&self, content: &serde_json::Value) -> Result<String, String> {
+    pub async fn generate(
+        &self,
+        model: &str,
+        content: &serde_json::Value,
+    ) -> Result<String, String> {
         let api_key = Gemini::api_key();
 
         if api_key.is_none() {
@@ -74,7 +55,6 @@ impl Gemini {
         }
 
         let api_key = api_key.unwrap();
-        let model = &self.model;
         let url = format!("{GEMINI_BASE_URL}/{model}:generateContent?key={api_key}");
         let response = self.https_client.post(&url).json(&content).send().await;
 
@@ -118,15 +98,13 @@ impl Gemini {
     /// * The API returns a non-success status code
     pub async fn generate_stream(
         &self,
+        model: &str,
         content: &JsonValue,
     ) -> Result<HttpResponse, Box<dyn Error>> {
-        // Check that we have an API key.
-        let api_key = Self::check_api_key()?;
-
         // Construct the request URL.
         let url = format!(
             "{GEMINI_BASE_URL}/{}:streamGenerateContent?alt=sse&key={}",
-            self.model, api_key
+            model, self.api_key
         );
 
         // Send the HTTP request.
@@ -220,31 +198,6 @@ impl Gemini {
         env::var("GEMINI_API_KEY").ok()
     }
 
-    /// Retrieves and validates the Google API key for Gemini from the environment variables.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<String, Box<dyn Error>>` - The API key as a String if the environment variable
-    ///   is set and not empty, otherwise an error describing the problem.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// * The GEMINI_API_KEY environment variable is not set
-    /// * The GEMINI_API_KEY environment variable is empty
-    fn check_api_key() -> Result<String, Box<dyn Error>> {
-        match env::var("GEMINI_API_KEY") {
-            Ok(key) => {
-                if key.is_empty() {
-                    Err(ERROR_MISSING_API_KEY.into())
-                } else {
-                    Ok(key)
-                }
-            }
-            Err(err) => Err(Box::new(err)),
-        }
-    }
-
     /// Formats a reqwest Error into a String for error reporting.
     ///
     /// This method removes sensitive URL information from the error message.
@@ -282,10 +235,11 @@ mod tests {
     ///
     /// Note: Requires the GEMINI_API_KEY environment variable to be set.
     #[tokio::test]
-    async fn test_generate() {
+    async fn test_gemini_generate_nostream() {
+        let api_key = env::var("GEMINI_API_KEY").ok().unwrap();
+        let model = "gemma-3-27b-it";
         // let model = "gemini-2.0-flash";
-        // let model = "gemma-3-27b-it";
-        let gemini = Gemini::new();
+        let gemini = Gemini::new(&api_key);
 
         // Test content
         let content = json!({
@@ -300,7 +254,7 @@ mod tests {
             ]
         });
 
-        let response = gemini.generate(&content).await;
+        let response = gemini.generate(model, &content).await;
 
         if let Err(err) = &response {
             assert!(response.is_ok(), "{err}");
@@ -321,8 +275,9 @@ mod tests {
     ///
     /// Note: Requires the GEMINI_API_KEY environment variable to be set.
     #[tokio::test]
-    async fn test_list_models() {
-        let gemini = Gemini::new();
+    async fn test_gemini_list_models() {
+        let api_key = env::var("GEMINI_API_KEY").ok().unwrap();
+        let gemini = Gemini::new(&api_key);
 
         let response = gemini.list_models().await;
 
@@ -346,10 +301,10 @@ mod tests {
     ///
     /// Note: Requires the GEMINI_API_KEY environment variable to be set.
     #[tokio::test]
-    async fn test_generate_stream() {
-        let gemini = Gemini::new();
-        // gemini.set_model("gemma-3-27b-it");
-        // gemini.set_model("gemini-2.0-flash");
+    async fn test_gemini_generate_stream() {
+        let api_key = env::var("GEMINI_API_KEY").ok().unwrap();
+        let model = "gemma-3-27b-it";
+        // let model = "gemini-2.0-flash";
         let content = json!({
             "contents": [
                 {
@@ -362,15 +317,16 @@ mod tests {
             ]
         });
 
-        let http_response = gemini.generate_stream(&content).await;
+        let gemini = Gemini::new(&api_key);
+        let response = gemini.generate_stream(model, &content).await;
 
-        if let Err(err) = &http_response {
-            assert!(http_response.is_ok(), "{err}");
+        if let Err(err) = &response {
+            assert!(response.is_ok(), "{err}");
         }
 
-        let mut http_response = http_response.unwrap();
+        let mut response = response.unwrap();
 
-        while let Some(json_chunk) = Gemini::read_stream(&mut http_response).await {
+        while let Some(json_chunk) = Gemini::read_stream(&mut response).await {
             let chunk_string = serde_json::to_string_pretty(&json_chunk).unwrap();
             println!("{}\n", chunk_string);
         }
