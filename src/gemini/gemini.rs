@@ -221,7 +221,7 @@ impl Gemini {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
+    use crate::GeminiTextRequest;
 
     /// Tests the `generate` method of the Gemini struct to ensure it successfully sends
     /// a content generation request to the Gemini API and receives a valid response.
@@ -237,24 +237,12 @@ mod tests {
     #[tokio::test]
     async fn test_gemini_generate_nostream() {
         let api_key = env::var("GEMINI_API_KEY").ok().unwrap();
-        let model = "gemma-3-27b-it";
-        // let model = "gemini-2.0-flash";
         let gemini = Gemini::new(&api_key);
 
-        // Test content
-        let content = json!({
-            "contents": [
-                {
-                    "parts": [
-                        {
-                            "text": "Explain how AI works in a few sentences."
-                        }
-                    ]
-                }
-            ]
-        });
-
-        let response = gemini.generate(model, &content).await;
+        // let model = "gemini-2.0-flash";
+        let model = "gemma-3-27b-it";
+        let request = GeminiTextRequest::new("Explain how AI works in a few sentences.");
+        let response = gemini.generate(model, request.as_json()).await;
 
         if let Err(err) = &response {
             assert!(response.is_ok(), "{err}");
@@ -303,22 +291,12 @@ mod tests {
     #[tokio::test]
     async fn test_gemini_generate_stream() {
         let api_key = env::var("GEMINI_API_KEY").ok().unwrap();
-        let model = "gemma-3-27b-it";
-        // let model = "gemini-2.0-flash";
-        let content = json!({
-            "contents": [
-                {
-                    "parts": [
-                        {
-                            "text": "Explain how AI works in a few sentences."
-                        }
-                    ]
-                }
-            ]
-        });
-
         let gemini = Gemini::new(&api_key);
-        let response = gemini.generate_stream(model, &content).await;
+
+        // let model = "gemini-2.0-flash";
+        let model = "gemma-3-27b-it";
+        let request = GeminiTextRequest::new("Explain how AI works in a few sentences.");
+        let response = gemini.generate_stream(model, request.as_json()).await;
 
         if let Err(err) = &response {
             assert!(response.is_ok(), "{err}");
