@@ -75,12 +75,13 @@ impl Gemini {
     ///
     /// # Returns
     ///
-    /// * `Result<String, String>` - The API response as a String if successful, or an error message if the request failed.
+    /// * `Result<JsonValue, Box<dyn Error>>` - The API response as a JSON value if successful, or an error
+    ///   if the request failed.
     pub async fn generate(
         &self,
         model: &str,
         content: &serde_json::Value,
-    ) -> Result<String, String> {
+    ) -> Result<JsonValue, Box<dyn Error>> {
         // Construct the request URL.
         let url = format!(
             "{}/{}:generateContent?key={}",
@@ -92,20 +93,20 @@ impl Gemini {
 
         // If there's an HTTP error, return it.
         if let Err(err) = response {
-            let error = Gemini::reqwest_error_string(err);
-            return Err(error);
+            return Err(err.without_url().into());
         }
 
         let response = response.unwrap();
         let text = response.text().await;
 
         if let Err(err) = text {
-            let error = Gemini::reqwest_error_string(err);
-            return Err(error);
+            return Err(err.without_url().into());
         }
 
         let text = text.unwrap();
-        Ok(text)
+        // Parse the response text into a JSON value
+        let json_value: JsonValue = serde_json::from_str(&text)?;
+        Ok(json_value)
     }
 
     /// Sends a streaming content generation request to the Gemini API and returns the raw HTTP response.
@@ -163,27 +164,27 @@ impl Gemini {
     ///
     /// # Returns
     ///
-    /// * `Result<String, String>` - The API response containing model information as a
-    ///   String if successful, or an error message if the request failed.
-    pub async fn list_models(&self) -> Result<String, String> {
+    /// * `Result<JsonValue, Box<dyn Error>>` - The API response containing model information as a
+    ///   JSON value if successful, or an error if the request failed.
+    pub async fn list_models(&self) -> Result<JsonValue, Box<dyn Error>> {
         let url = format!("{}?key={}", self.base_url, self.api_key);
         let response = self.https_client.get(&url).send().await;
 
         if let Err(err) = response {
-            let error = Gemini::reqwest_error_string(err);
-            return Err(error);
+            return Err(err.without_url().into());
         }
 
         let response = response.unwrap();
         let text = response.text().await;
 
         if let Err(err) = text {
-            let error = Gemini::reqwest_error_string(err);
-            return Err(error);
+            return Err(err.without_url().into());
         }
 
         let text = text.unwrap();
-        Ok(text)
+        // Parse the response text into a JSON value
+        let json_value: JsonValue = serde_json::from_str(&text)?;
+        Ok(json_value)
     }
 
     /// Processes and extracts JSON data from a streaming HTTP response from the Gemini API.
@@ -212,27 +213,6 @@ impl Gemini {
         let value: JsonValue = serde_json::from_str(&slice).ok()?;
 
         return Some(value);
-    }
-}
-
-// ===
-// PRIVATE IMPL: Gemini
-// ===
-
-impl Gemini {
-    /// Formats a reqwest Error into a String for error reporting.
-    ///
-    /// This method removes sensitive URL information from the error message.
-    ///
-    /// # Arguments
-    ///
-    /// * `err` - The reqwest Error to format.
-    ///
-    /// # Returns
-    ///
-    /// * `String` - A formatted error message string.
-    fn reqwest_error_string(err: reqwest::Error) -> String {
-        format!("{}", err.without_url())
     }
 }
 
@@ -295,7 +275,8 @@ mod tests {
         }
 
         let response = response.unwrap();
-        print!("\nContent: {response}");
+        let pretty_json = serde_json::to_string_pretty(&response).unwrap();
+        println!("Models: {pretty_json}");
     }
 
     /// Tests the `generate_stream` method of the Gemini struct to ensure it successfully sends
@@ -338,7 +319,7 @@ mod tests {
     /// 2. Constructs a test prompt asking to explain AI
     /// 3. Makes a real API call to Gemini (requires valid API key)
     /// 4. Verifies that the response is successful
-    /// 5. Prints the response content
+    /// 5. Prints the response content as a pretty-formatted JSON
     ///
     /// Note: Requires the GEMINI_API_KEY environment variable to be set.
     #[tokio::test]
@@ -353,6 +334,8 @@ mod tests {
             assert!(json_response.is_ok(), "{err}");
         }
 
-        print!("{}", json_response.unwrap());
+        let json_value = json_response.unwrap();
+        let pretty_json = serde_json::to_string_pretty(&json_value).unwrap();
+        println!("{}", pretty_json);
     }
 }
