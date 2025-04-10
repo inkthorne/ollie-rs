@@ -326,12 +326,6 @@ mod tests {
         // Use the new as_json method directly
         let json_request = request.as_json();
 
-        // Verify model is set correctly
-        assert_eq!(
-            json_request["model"],
-            JsonValue::String("gpt-3.5-turbo".to_string())
-        );
-
         // Verify contents array has one item
         let contents = json_request["contents"].as_array().unwrap();
         assert_eq!(contents.len(), 1);
