@@ -6,6 +6,8 @@ A Rust library for interacting with large language models (LLMs) through simple,
 [![Documentation](https://docs.rs/ollie-rs/badge.svg)](https://docs.rs/ollie-rs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> **Note**: This crate is in active development. Some features may not be fully implemented or may be unstable. API changes are likely as the library evolves.
+
 ## Features
 
 - **Ollama Integration**: Full support for the [Ollama](https://ollama.ai) API, including:
