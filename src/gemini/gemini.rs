@@ -2,7 +2,7 @@ use reqwest::Response as HttpResponse;
 use serde_json::Value as JsonValue;
 use std::error::Error;
 
-static GEMINI_BASE_URL: &str = "https://generativelanguage.googleapis.com/v1beta/models";
+const GEMINI_BASE_URL: &str = "https://generativelanguage.googleapis.com/v1beta/models";
 
 // ===
 // STRUCT: Gemini
