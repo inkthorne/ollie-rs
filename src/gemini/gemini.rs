@@ -9,7 +9,11 @@ static GEMINI_BASE_URL: &str = "https://generativelanguage.googleapis.com/v1beta
 // ===
 
 pub struct Gemini {
+    /// The API key used for authentication with the Gemini API.
     api_key: String,
+
+    /// The base URL for the Gemini API.
+    base_url: String,
 
     /// HTTP client used for making requests to the Gemini server.
     https_client: reqwest::Client,
@@ -32,8 +36,34 @@ impl Gemini {
     pub fn new(api_key: &str) -> Self {
         Gemini {
             api_key: api_key.to_string(),
+            base_url: GEMINI_BASE_URL.to_string(),
             https_client: reqwest::Client::new(),
         }
+    }
+
+    /// Sets a custom base URL for the Gemini API.
+    ///
+    /// This can be useful for testing or when using a proxy server.
+    ///
+    /// # Arguments
+    ///
+    /// * `url` - The new base URL to use for Gemini API requests.
+    ///
+    /// # Returns
+    ///
+    /// * `&mut Self` - A mutable reference to this instance for method chaining.
+    pub fn set_base_url(&mut self, url: &str) -> &mut Self {
+        self.base_url = url.to_string();
+        self
+    }
+
+    /// Returns the current base URL used for Gemini API requests.
+    ///
+    /// # Returns
+    ///
+    /// * `&str` - The current base URL.
+    pub fn base_url(&self) -> &str {
+        &self.base_url
     }
 
     /// Sends a content generation request to the Gemini API and returns the response.
@@ -52,8 +82,10 @@ impl Gemini {
         content: &serde_json::Value,
     ) -> Result<String, String> {
         // Construct the request URL.
-        let api_key = &self.api_key;
-        let url = format!("{GEMINI_BASE_URL}/{model}:generateContent?key={api_key}");
+        let url = format!(
+            "{}/{}:generateContent?key={}",
+            self.base_url, model, self.api_key
+        );
 
         // Send the HTTP request.
         let response = self.https_client.post(&url).json(&content).send().await;
@@ -104,8 +136,8 @@ impl Gemini {
     ) -> Result<HttpResponse, Box<dyn Error>> {
         // Construct the request URL.
         let url = format!(
-            "{GEMINI_BASE_URL}/{}:streamGenerateContent?alt=sse&key={}",
-            model, self.api_key
+            "{}/{}:streamGenerateContent?alt=sse&key={}",
+            self.base_url, model, self.api_key
         );
 
         // Send the HTTP request.
@@ -134,8 +166,7 @@ impl Gemini {
     /// * `Result<String, String>` - The API response containing model information as a
     ///   String if successful, or an error message if the request failed.
     pub async fn list_models(&self) -> Result<String, String> {
-        let api_key = &self.api_key;
-        let url = format!("{GEMINI_BASE_URL}?key={api_key}");
+        let url = format!("{}?key={}", self.base_url, self.api_key);
         let response = self.https_client.get(&url).send().await;
 
         if let Err(err) = response {
@@ -217,6 +248,33 @@ mod tests {
 
     fn api_key() -> String {
         env::var("GEMINI_API_KEY").expect("-> Error: environment variable GEMINI_API_KEY")
+    }
+
+    /// Tests the `set_base_url` method and its accessor to ensure they properly
+    /// modify and return the base URL for the Gemini API.
+    ///
+    /// This test:
+    /// 1. Creates a new Gemini instance
+    /// 2. Verifies the default base URL is set correctly
+    /// 3. Sets a custom base URL
+    /// 4. Confirms the custom URL was properly set
+    /// 5. Tests method chaining by setting another URL and making assertions
+    #[test]
+    fn test_gemini_set_base_url() {
+        let mut gemini = Gemini::new("dummy_api_key");
+
+        // Verify default base URL
+        assert_eq!(gemini.base_url(), GEMINI_BASE_URL);
+
+        // Test setting a custom URL
+        let custom_url = "https://custom-api.example.com/v1/models";
+        gemini.set_base_url(custom_url);
+        assert_eq!(gemini.base_url(), custom_url);
+
+        // Test method chaining
+        let another_url = "https://another-api.example.org/v2/models";
+        let result = gemini.set_base_url(another_url);
+        assert_eq!(result.base_url(), another_url);
     }
 
     /// Tests the `list_models` method of the Gemini struct to ensure it successfully
