@@ -17,7 +17,9 @@ A Rust library for interacting with large language models (LLMs) through simple,
   - Streaming responses
   - Session management for multi-turn conversations
   
-- **Gemini Integration**: Support for Google's [Gemini](https://deepmind.google/technologies/gemini/) AI models (coming soon)
+- **Gemini Integration**: Support for Google's [Gemini](https://deepmind.google/technologies/gemini/) AI models, including:
+  - Text generation
+  - Streaming responses
 
 - **Modern Rust APIs**:
   - Async-first design with Tokio
@@ -192,10 +194,12 @@ By default, ollie-rs connects to an Ollama server at `127.0.0.1:11434`. You can:
 ## Examples
 
 Check the `examples/` directory for more detailed examples:
-- `example_chat.rs`: Basic chat interaction
-- `example_generate.rs`: Text generation
-- `example_session.rs`: Multi-turn conversation using sessions
-- `example_conversation.rs`: Interactive conversation example
+- `ex_ollama_chat.rs`: Basic chat interaction
+- `ex_ollama_generate.rs`: Text generation
+- `ex_ollama_session.rs`: Multi-turn conversation using sessions
+- `ex_ollama_conversation.rs`: Interactive conversation example
+- `ex_gemini_generate.rs`: Text generation with Gemini
+- `ex_gemini_generate_streamed.rs`: Streamed text generation with Gemini
 
 ## Installation
 
