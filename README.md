@@ -10,7 +10,7 @@ A Rust library for interacting with large language models (LLMs) through simple,
 
 ## Features
 
-- **Ollama Integration**: Full support for the [Ollama](https://ollama.ai) API, including:
+- **Ollama Integration**: Support for the [Ollama](https://ollama.ai) API, including:
   - Text generation
   - Chat completion
   - Function calling / tools
