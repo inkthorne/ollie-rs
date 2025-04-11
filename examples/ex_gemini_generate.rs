@@ -1,6 +1,5 @@
 use ollie_rs::Gemini;
 use ollie_rs::GeminiRequest;
-use ollie_rs::GeminiResponse;
 use std::env;
 
 #[tokio::main]
@@ -20,10 +19,7 @@ async fn main() {
     println!("Sending request to Gemini API...");
 
     // Send the request and get the response.
-    let response_json = gemini.generate(request.as_json()).await.unwrap();
-
-    // Parse the JSON response into a GeminiResponse struct
-    let response = GeminiResponse::new(response_json);
+    let response = gemini.generate(request.as_json()).await.unwrap();
 
     // Extract and print just the text content from the response
     if let Some(text) = response.text() {

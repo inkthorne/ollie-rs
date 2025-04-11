@@ -1,3 +1,4 @@
+use crate::GeminiResponse;
 use reqwest::Response as HttpResponse;
 use serde_json::Value as JsonValue;
 use std::error::Error;
@@ -78,8 +79,8 @@ impl Gemini {
     ///
     /// # Returns
     ///
-    /// * `Result<JsonValue, Box<dyn Error>>` - The API response as a JSON value if successful, or an error
-    ///   if the request failed.
+    /// * `Result<GeminiResponse, Box<dyn Error>>` - A GeminiResponse containing the API response if successful,
+    ///   or an error if the request failed.
     ///
     /// # Errors
     ///
@@ -90,7 +91,7 @@ impl Gemini {
     pub async fn generate(
         &self,
         content: &serde_json::Value,
-    ) -> Result<JsonValue, Box<dyn Error>> {
+    ) -> Result<GeminiResponse, Box<dyn Error>> {
         // Construct the request URL.
         let url = format!(
             "{}/{}:generateContent?key={}",
@@ -115,7 +116,8 @@ impl Gemini {
         let text = text.unwrap();
         // Parse the response text into a JSON value
         let json_value: JsonValue = serde_json::from_str(&text)?;
-        Ok(json_value)
+        let gemini_response = GeminiResponse::new(json_value);
+        Ok(gemini_response)
     }
 
     /// Sends a streaming content generation request to the Gemini API and returns the raw HTTP response.
@@ -313,9 +315,9 @@ mod tests {
     #[tokio::test]
     async fn test_gemini_generate_stream() {
         // Model selection
-        let model = "gemma-3-27b-it";  // Alternative: "gemini-2.0-flash"
+        let model = "gemma-3-27b-it"; // Alternative: "gemini-2.0-flash"
         let gemini = Gemini::new(model, &api_key());
-        
+
         let request = GeminiRequest::text("Explain how AI works in a few sentences.");
         let http_response = gemini.generate_stream(request.as_json()).await;
 
@@ -346,18 +348,20 @@ mod tests {
     #[tokio::test]
     async fn test_gemini_generate_nostream() {
         // Model selection
-        let model = "gemma-3-27b-it";  // Alternative: "gemini-2.0-flash"
+        let model = "gemma-3-27b-it"; // Alternative: "gemini-2.0-flash"
         let gemini = Gemini::new(model, &api_key());
-        
+
         let request = GeminiRequest::text("Explain how AI works in a few sentences.");
-        let json_response = gemini.generate(request.as_json()).await;
+        let gemini_response = gemini.generate(request.as_json()).await;
 
-        if let Err(err) = &json_response {
-            assert!(json_response.is_ok(), "{err}");
+        match &gemini_response {
+            Ok(gemini_response) => {
+                let pretty_json = gemini_response.to_string_pretty();
+                println!("Response: {pretty_json}");
+            }
+            Err(err) => {
+                assert!(gemini_response.is_ok(), "{err}");
+            }
         }
-
-        let json_value = json_response.unwrap();
-        let pretty_json = serde_json::to_string_pretty(&json_value).unwrap();
-        println!("{}", pretty_json);
     }
 }

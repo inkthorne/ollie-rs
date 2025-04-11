@@ -28,6 +28,14 @@ impl GeminiResponse {
         GeminiResponse { response }
     }
 
+    /// Returns a reference to the underlying JSON value.
+    ///
+    /// # Returns
+    /// * A reference to the JsonValue representing the raw response
+    pub fn as_json(&self) -> &JsonValue {
+        &self.response
+    }
+
     /// Converts the response to a pretty-printed JSON string.
     ///
     /// # Returns
