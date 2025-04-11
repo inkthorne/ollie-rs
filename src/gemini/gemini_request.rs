@@ -41,6 +41,19 @@ impl GeminiContent {
         content
     }
 
+    /// Creates a new GeminiContent with a text part and sets the role to "user".
+    ///
+    /// # Arguments
+    /// * `text` - The text to add to the content
+    ///
+    /// # Returns
+    /// * A new GeminiContent instance with the role set to "user" and the text added
+    pub fn user(text: &str) -> Self {
+        let mut content = GeminiContent::new();
+        content.set_role("user").add_text(text);
+        content
+    }
+
     /// Returns a reference to the internal JSON object.
     ///
     /// # Returns
@@ -172,6 +185,23 @@ impl GeminiRequest {
     /// * A new GeminiRequest instance with the text added
     pub fn text(text: &str) -> Self {
         let content = GeminiContent::text(text);
+        let mut request = GeminiRequest::new();
+        request.add_content(content.to_json());
+        request
+    }
+
+    /// Creates a new GeminiRequest with a user text input.
+    ///
+    /// This is a convenience method that creates a request with a single content
+    /// object containing the provided text with the role set to "user".
+    ///
+    /// # Arguments
+    /// * `text` - The text to include in the request as user content
+    ///
+    /// # Returns
+    /// * A new GeminiRequest instance with the user text added
+    pub fn user(text: &str) -> Self {
+        let content = GeminiContent::user(text);
         let mut request = GeminiRequest::new();
         request.add_content(content.to_json());
         request
