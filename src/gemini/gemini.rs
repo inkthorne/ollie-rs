@@ -9,6 +9,9 @@ const GEMINI_BASE_URL: &str = "https://generativelanguage.googleapis.com/v1beta/
 // ===
 
 pub struct Gemini {
+    /// The name of the model to use for content generation.
+    model: String,
+
     /// The API key used for authentication with the Gemini API.
     api_key: String,
 
@@ -33,8 +36,9 @@ impl Gemini {
     /// # Returns
     ///
     /// * `Gemini` - An instance of the Gemini struct.
-    pub fn new(api_key: &str) -> Self {
+    pub fn new(model: &str, api_key: &str) -> Self {
         Gemini {
+            model: model.to_string(),
             api_key: api_key.to_string(),
             base_url: GEMINI_BASE_URL.to_string(),
             https_client: reqwest::Client::new(),
@@ -70,29 +74,27 @@ impl Gemini {
     ///
     /// # Arguments
     ///
-    /// * `model` - The model name to use for this specific request.
     /// * `content` - A JSON value containing the request content for the Gemini API.
     ///
     /// # Returns
     ///
     /// * `Result<JsonValue, Box<dyn Error>>` - The API response as a JSON value if successful, or an error
     ///   if the request failed.
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an error if:
     /// * The HTTP request fails
     /// * The API response cannot be parsed as text
     /// * The response text cannot be parsed as JSON
     pub async fn generate(
         &self,
-        model: &str,
         content: &serde_json::Value,
     ) -> Result<JsonValue, Box<dyn Error>> {
         // Construct the request URL.
         let url = format!(
             "{}/{}:generateContent?key={}",
-            self.base_url, model, self.api_key
+            self.base_url, self.model, self.api_key
         );
 
         // Send the HTTP request.
@@ -124,7 +126,6 @@ impl Gemini {
     ///
     /// # Arguments
     ///
-    /// * `model` - The model name to use for this specific request.
     /// * `content` - A JSON value containing the request content for the Gemini API.
     ///
     /// # Returns
@@ -139,13 +140,12 @@ impl Gemini {
     /// * The API returns a non-success status code
     pub async fn generate_stream(
         &self,
-        model: &str,
         content: &JsonValue,
     ) -> Result<HttpResponse, Box<dyn Error>> {
         // Construct the request URL.
         let url = format!(
             "{}/{}:streamGenerateContent?alt=sse&key={}",
-            self.base_url, model, self.api_key
+            self.base_url, self.model, self.api_key
         );
 
         // Send the HTTP request.
@@ -260,7 +260,7 @@ mod tests {
     /// 5. Tests method chaining by setting another URL and making assertions
     #[test]
     fn test_gemini_set_base_url() {
-        let mut gemini = Gemini::new("dummy_api_key");
+        let mut gemini = Gemini::new("gemini-1.0-pro", "dummy_api_key");
 
         // Verify default base URL
         assert_eq!(gemini.base_url(), GEMINI_BASE_URL);
@@ -286,7 +286,7 @@ mod tests {
     /// 4. Prints the response content showing the available models
     #[tokio::test]
     async fn test_gemini_list_models() {
-        let gemini = Gemini::new(&api_key());
+        let gemini = Gemini::new("gemini-1.0-pro", &api_key());
         let response = gemini.list_models().await;
 
         if let Err(err) = &response {
@@ -309,17 +309,15 @@ mod tests {
     /// 5. Processes and prints each chunk of the streaming response
     ///
     /// Note: Requires the GEMINI_API_KEY environment variable to be set.
-    /// Note: The test is configured to use "gemma-3-27b-it" model, but can be
-    ///       reconfigured to use "gemini-2.0-flash" by uncommenting the alternative model.
+    /// Note: The test is configured to use "gemma-3-27b-it" model.
     #[tokio::test]
     async fn test_gemini_generate_stream() {
-        let gemini = Gemini::new(&api_key());
-
-        // Alternative model option:
-        // let model = "gemini-2.0-flash";
-        let model = "gemma-3-27b-it";
+        // Model selection
+        let model = "gemma-3-27b-it";  // Alternative: "gemini-2.0-flash"
+        let gemini = Gemini::new(model, &api_key());
+        
         let request = GeminiRequest::text("Explain how AI works in a few sentences.");
-        let http_response = gemini.generate_stream(model, request.as_json()).await;
+        let http_response = gemini.generate_stream(request.as_json()).await;
 
         if let Err(err) = &http_response {
             assert!(http_response.is_ok(), "{err}");
@@ -344,16 +342,15 @@ mod tests {
     /// 5. Prints the response content as a pretty-formatted JSON
     ///
     /// Note: Requires the GEMINI_API_KEY environment variable to be set.
-    /// Note: The test is configured to use "gemma-3-27b-it" model, but can be
-    ///       reconfigured to use "gemini-2.0-flash" by uncommenting the alternative model.
+    /// Note: The test is configured to use "gemma-3-27b-it" model.
     #[tokio::test]
     async fn test_gemini_generate_nostream() {
-        let gemini = Gemini::new(&api_key());
-        // Alternative model option:
-        // let model = "gemini-2.0-flash";
-        let model = "gemma-3-27b-it";
+        // Model selection
+        let model = "gemma-3-27b-it";  // Alternative: "gemini-2.0-flash"
+        let gemini = Gemini::new(model, &api_key());
+        
         let request = GeminiRequest::text("Explain how AI works in a few sentences.");
-        let json_response = gemini.generate(model, request.as_json()).await;
+        let json_response = gemini.generate(request.as_json()).await;
 
         if let Err(err) = &json_response {
             assert!(json_response.is_ok(), "{err}");
