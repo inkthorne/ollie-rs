@@ -1,4 +1,4 @@
-use crate::GeminiResponse;
+use crate::{GeminiResponse, GeminiResponseStream};
 use reqwest::Response as HttpResponse;
 use serde_json::Value as JsonValue;
 use std::error::Error;
@@ -120,10 +120,10 @@ impl Gemini {
         Ok(gemini_response)
     }
 
-    /// Sends a streaming content generation request to the Gemini API and returns the raw HTTP response.
+    /// Sends a streaming content generation request to the Gemini API and returns a stream wrapper.
     ///
     /// This method allows for streaming responses from the Gemini API, which is useful for
-    /// real-time processing of generated content. The response is returned as a raw HTTP response
+    /// real-time processing of generated content. The response is returned as a GeminiResponseStream
     /// that can be processed for server-sent events (SSE).
     ///
     /// # Arguments
@@ -132,7 +132,7 @@ impl Gemini {
     ///
     /// # Returns
     ///
-    /// * `Result<HttpResponse, Box<dyn Error>>` - The raw HTTP response if successful, or an error
+    /// * `Result<GeminiResponseStream, Box<dyn Error>>` - A stream wrapper if successful, or an error
     ///   if the request failed.
     ///
     /// # Errors
@@ -143,7 +143,7 @@ impl Gemini {
     pub async fn generate_stream(
         &self,
         content: &JsonValue,
-    ) -> Result<HttpResponse, Box<dyn Error>> {
+    ) -> Result<GeminiResponseStream, Box<dyn Error>> {
         // Construct the request URL.
         let url = format!(
             "{}/{}:streamGenerateContent?alt=sse&key={}",
@@ -161,7 +161,7 @@ impl Gemini {
                     return Err(error.into());
                 }
 
-                return Ok(response);
+                return Ok(GeminiResponseStream::new(response));
             }
             Err(err) => {
                 return Err(err.without_url().into());
@@ -311,7 +311,7 @@ mod tests {
     /// 5. Processes and prints each chunk of the streaming response
     ///
     /// Note: Requires the GEMINI_API_KEY environment variable to be set.
-    /// Note: The test is configured to use "gemma-3-27b-it" model.
+    /// Note: The test uses "gemma-3-27b-it" model by default, with "gemini-2.0-flash" as an alternative option.
     #[tokio::test]
     async fn test_gemini_generate_stream() {
         // Model selection
@@ -319,17 +319,16 @@ mod tests {
         let gemini = Gemini::new(model, &api_key());
 
         let request = GeminiRequest::text("Explain how AI works in a few sentences.");
-        let http_response = gemini.generate_stream(request.as_json()).await;
+        let stream = gemini.generate_stream(request.as_json()).await;
 
-        if let Err(err) = &http_response {
-            assert!(http_response.is_ok(), "{err}");
+        if let Err(err) = &stream {
+            assert!(stream.is_ok(), "{err}");
         }
 
-        let mut http_response = http_response.unwrap();
+        let mut stream = stream.unwrap();
 
-        while let Some(json_response) = Gemini::read_stream(&mut http_response).await {
-            let json_string = serde_json::to_string_pretty(&json_response).unwrap();
-            println!("{}\n", json_string);
+        while let Some(response) = stream.response().await {
+            println!("{}\n", response.to_string_pretty());
         }
     }
 
@@ -344,7 +343,7 @@ mod tests {
     /// 5. Prints the response content as a pretty-formatted JSON
     ///
     /// Note: Requires the GEMINI_API_KEY environment variable to be set.
-    /// Note: The test is configured to use "gemma-3-27b-it" model.
+    /// Note: The test uses "gemma-3-27b-it" model by default, with "gemini-2.0-flash" as an alternative option.
     #[tokio::test]
     async fn test_gemini_generate_nostream() {
         // Model selection

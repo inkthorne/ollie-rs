@@ -1,38 +1,24 @@
-use ollie_rs::{Gemini, GeminiRequest, GeminiResponse};
+use ollie_rs::{Gemini, GeminiRequest};
 use std::env;
 use std::io::Write;
 
 #[tokio::main]
 async fn main() {
-    // Get the API key from environment variable
+    // Create the Gemini client.
     let api_key = env::var("GEMINI_API_KEY").expect("GEMINI_API_KEY environment variable not set");
+    let gemini = Gemini::new("gemini-2.0-flash", &api_key);
 
-    // Choose a model - use one appropriate for your API key access
-    // Examples of available models:
-    // let model = "gemma-3-27b-it";
-    let model = "gemini-2.0-flash";
+    println!("\nSending streaming request to Gemini API...\n");
 
-    // Create a new Gemini client with the API key.
-    let gemini = Gemini::new(model, &api_key);
-
-    // Create a simple text request using the GeminiRequest::text helper method
+    // Send the request to generate a story.
     let request = GeminiRequest::text("Tell me a short story about a curious fox.");
+    let mut stream = gemini.generate_stream(request.as_json()).await.unwrap();
 
-    println!("Sending streaming request to Gemini API...");
-
-    // Send the streaming request and get the response stream.
-    let mut http_response = gemini.generate_stream(request.as_json()).await.unwrap();
-
-    println!("Receiving streamed response:");
-
-    // Process the streaming response chunk by chunk
-    while let Some(json_response) = Gemini::read_stream(&mut http_response).await {
-        let gemini_response = GeminiResponse::new(json_response);
-        if let Some(text) = gemini_response.text() {
+    // Print the response as they arrive.
+    while let Some(response) = stream.response().await {
+        if let Some(text) = response.text() {
             print!("{}", text);
             std::io::stdout().flush().unwrap();
         }
     }
-
-    println!("Streaming complete!");
 }
