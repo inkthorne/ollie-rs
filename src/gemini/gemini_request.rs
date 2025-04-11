@@ -9,27 +9,52 @@ use serde_json::json;
 ///
 /// This struct allows building and manipulating a single content object
 /// within the request, including adding text and code parts.
-pub struct GeminiContent<'a> {
-    content: &'a mut JsonValue,
+pub struct GeminiContent {
+    content: JsonValue,
 }
 
 // ===
 // PUBLIC: GeminiContent
 // ===
 
-impl<'a> GeminiContent<'a> {
+impl GeminiContent {
     /// Creates a new GeminiContent wrapper around a JSON content object.
     ///
-    /// Initializes the 'parts' array if it doesn't already exist.
+    /// # Returns
+    /// * A new empty GeminiContent instance
+    pub fn new() -> Self {
+        GeminiContent {
+            content: JsonValue::default(),
+        }
+    }
+
+    /// Creates a new GeminiContent with a text part.
     ///
     /// # Arguments
-    /// * `content` - Mutable reference to a JSON object to be used as content
-    pub fn new(content: &'a mut JsonValue) -> Self {
-        // Initialize with empty 'parts' array only if it doesn't already exist.
-        if !content.get("parts").map_or(false, |p| p.is_array()) {
-            content["parts"] = JsonValue::Array(vec![]);
-        }
-        GeminiContent { content }
+    /// * `text` - The text to add to the content
+    ///
+    /// # Returns
+    /// * A new GeminiContent instance with the text added
+    pub fn text(text: &str) -> Self {
+        let mut content = GeminiContent::new();
+        content.add_text(text);
+        content
+    }
+
+    /// Returns a reference to the internal JSON object.
+    ///
+    /// # Returns
+    /// * A reference to the JSON value representing the content
+    pub fn as_json(&self) -> &JsonValue {
+        &self.content
+    }
+
+    /// Consumes the GeminiContent and returns the internal JSON object.
+    ///
+    /// # Returns
+    /// * The JSON value representing the content
+    pub fn to_json(self) -> JsonValue {
+        self.content
     }
 
     /// Sets the role for this content.
@@ -56,11 +81,7 @@ impl<'a> GeminiContent<'a> {
             "text": text
         });
 
-        self.content["parts"]
-            .as_array_mut()
-            .unwrap()
-            .push(text_part);
-        self
+        self.add_part(text_part)
     }
 
     /// Adds executable code as a part to this content.
@@ -79,10 +100,35 @@ impl<'a> GeminiContent<'a> {
             }
         });
 
-        self.content["parts"]
-            .as_array_mut()
-            .unwrap()
-            .push(code_part);
+        self.add_part(code_part)
+    }
+}
+
+// ===
+// PRIVATE: GeminiContent
+// ===
+
+impl GeminiContent {
+    /// Adds a part to the content's parts array.
+    ///
+    /// This private method handles adding any kind of part (text, code, etc.)
+    /// to the content, creating the parts array if it doesn't exist yet.
+    ///
+    /// # Arguments
+    /// * `part` - The JSON value representing the part to add
+    ///
+    /// # Returns
+    /// * A mutable reference to self for method chaining
+    fn add_part(&mut self, part: JsonValue) -> &mut Self {
+        // Initialize with empty 'parts' array only if it doesn't already exist.
+        if !self.content.get("parts").map_or(false, |p| p.is_array()) {
+            self.content["parts"] = JsonValue::Array(vec![]);
+        }
+
+        // Add the new part to the 'parts' array.
+        let parts = self.content["parts"].as_array_mut().unwrap();
+        parts.push(part);
+
         self
     }
 }
@@ -112,6 +158,23 @@ impl GeminiRequest {
         GeminiRequest {
             request: JsonValue::default(),
         }
+    }
+
+    /// Creates a new GeminiRequest with a text input.
+    ///
+    /// This is a convenience method that creates a request with a single content
+    /// object containing the provided text.
+    ///
+    /// # Arguments
+    /// * `text` - The text to include in the request
+    ///
+    /// # Returns
+    /// * A new GeminiRequest instance with the text added
+    pub fn text(text: &str) -> Self {
+        let content = GeminiContent::text(text);
+        let mut request = GeminiRequest::new();
+        request.add_content(content.to_json());
+        request
     }
 
     /// Returns the internal JSON object.
@@ -149,103 +212,29 @@ impl GeminiRequest {
     ///
     /// # Returns
     /// * A GeminiContent builder for the new content object
-    pub fn add_content(&mut self) -> GeminiContent {
+    pub fn add_content(&mut self, content: JsonValue) -> &mut Self {
         // Ensure 'contents' is an array.
         if !self.request.get("contents").map_or(false, |c| c.is_array()) {
             self.request["contents"] = JsonValue::Array(vec![]);
         }
 
-        // Add new empty object to the array.
-        let empty_content = json!({});
+        // Add new 'content' to the array.
         self.request["contents"]
             .as_array_mut()
             .unwrap()
-            .push(empty_content);
+            .push(content);
 
-        // Get a mutable reference to the last element.
-        let content_idx = self.request["contents"].as_array().unwrap().len() - 1;
-        let content_ref = &mut self.request["contents"][content_idx];
-
-        // Return a GeminiContent that references the new content object.
-        GeminiContent::new(content_ref)
-    }
-}
-
-// ===
-// STRUCT: GeminiTextRequest
-// ===
-
-/// A simplified request builder for sending text prompts to Gemini.
-///
-/// This struct provides a convenient way to create a simple text-based
-/// request without manually building the content structure.
-pub struct GeminiTextRequest {
-    request: GeminiRequest,
-}
-
-// ===
-// PUBLIC: GeminiTextRequest
-// ===
-
-impl GeminiTextRequest {
-    /// Creates a new GeminiTextRequest with the provided text prompt.
-    ///
-    /// # Arguments
-    /// * `text` - The text prompt to send to the model
-    ///
-    /// # Returns
-    /// * A new GeminiTextRequest instance
-    pub fn new(text: &str) -> Self {
-        let mut request = GeminiTextRequest {
-            request: GeminiRequest::new(),
-        };
-        request.set_text(text);
-        request
-    }
-
-    /// Returns the internal JSON object.
-    ///
-    /// # Returns
-    /// * A reference to the JSON object representing the request
-    pub fn as_json(&self) -> &JsonValue {
-        self.request.as_json()
-    }
-
-    /// Converts the request to a pretty-printed JSON string.
-    ///
-    /// # Returns
-    /// * A formatted JSON string representation of the request
-    pub fn to_string_pretty(&self) -> String {
-        self.request.to_string_pretty()
-    }
-}
-
-// ===
-// PRIVATE: GeminiTextRequest
-// ===
-
-impl GeminiTextRequest {
-    /// Sets the text content for this request.
-    ///
-    /// # Arguments
-    /// * `text` - The text content to add
-    ///
-    /// # Returns
-    /// * A mutable reference to self for method chaining
-    fn set_text(&mut self, text: &str) -> &mut Self {
-        let mut content = self.request.add_content();
-        content.add_text(text);
         self
     }
 }
 
+// ===
+// TESTS: GeminiRequest
+// ===
+
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    // ===
-    // TESTS: GeminiRequest
-    // ===
 
     /// Tests the creation of a GeminiRequest with code content.
     ///
@@ -257,14 +246,16 @@ mod tests {
     /// - All parts are properly structured in the JSON output
     #[test]
     fn test_gemini_request_code() {
-        let mut request = GeminiRequest::new();
-        request.set_model("gpt-3.5-turbo");
-
-        let mut content = request.add_content();
+        let mut content = GeminiContent::new();
         content
             .set_role("user")
             .add_text("Can you tell me the result of executing this code?")
             .add_code("python", "print('Hello, world!')");
+
+        let mut request = GeminiRequest::new();
+        request
+            .set_model("gpt-3.5-turbo")
+            .add_content(content.to_json());
 
         let output = request.to_string_pretty();
         println!("GeminiRequest: {}", output);
@@ -301,41 +292,6 @@ mod tests {
         assert_eq!(
             parts[1]["executable_code"]["code"],
             JsonValue::String("print('Hello, world!')".to_string())
-        );
-    }
-
-    // ===
-    // TESTS: GeminiTextRequest
-    // ===
-
-    /// Tests the creation of a simplified GeminiTextRequest.
-    ///
-    /// This test verifies that:
-    /// - A text request can be created with a prompt
-    /// - The default model is set correctly
-    /// - Contents array is properly initialized
-    /// - The text content is correctly added to the request
-    #[test]
-    fn test_gemini_text_request() {
-        let request = GeminiTextRequest::new("How are you today?");
-
-        // Print the request for debugging
-        let output = request.to_string_pretty();
-        println!("GeminiTextRequest: {}", output);
-
-        // Use the new as_json method directly
-        let json_request = request.as_json();
-
-        // Verify contents array has one item
-        let contents = json_request["contents"].as_array().unwrap();
-        assert_eq!(contents.len(), 1);
-
-        // Verify the text content was added correctly
-        let parts = contents[0]["parts"].as_array().unwrap();
-        assert_eq!(parts.len(), 1);
-        assert_eq!(
-            parts[0]["text"],
-            JsonValue::String("How are you today?".to_string())
         );
     }
 }

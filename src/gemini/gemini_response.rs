@@ -4,6 +4,10 @@ use serde_json::Value as JsonValue;
 // STRUCT: GeminiResponse
 // ===
 
+/// Represents a response from the Gemini AI model.
+///
+/// This struct wraps the JSON response from the Gemini API and provides
+/// convenient methods for accessing the response data.
 pub struct GeminiResponse {
     response: JsonValue,
 }
@@ -13,27 +17,35 @@ pub struct GeminiResponse {
 // ===
 
 impl GeminiResponse {
+    /// Creates a new GeminiResponse from a JSON value.
+    ///
+    /// # Arguments
+    /// * `response` - The JSON value representing the response from the Gemini API
+    ///
+    /// # Returns
+    /// * A new GeminiResponse instance wrapping the provided JSON
     pub fn new(response: JsonValue) -> Self {
         GeminiResponse { response }
     }
 
-    pub fn text(&self) -> Option<&str> {
-        if let Some(candidates) = self.response.get("candidates") {
-            if let Some(candidate) = candidates.get(0) {
-                if let Some(content) = candidate.get("content") {
-                    if let Some(parts) = content.get("parts") {
-                        if let Some(part) = parts.get(0) {
-                            if let Some(text) = part.get("text") {
-                                if let Some(text_str) = text.as_str() {
-                                    return Some(text_str);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    /// Converts the response to a pretty-printed JSON string.
+    ///
+    /// # Returns
+    /// * A formatted JSON string representation of the response
+    pub fn to_string_pretty(&self) -> String {
+        serde_json::to_string_pretty(&self.response).unwrap_or_default()
+    }
 
-        None
+    /// Extracts the primary text content from the response.
+    ///
+    /// This method navigates through the response structure to find
+    /// the first text content from the first candidate.
+    ///
+    /// # Returns
+    /// * Some(&str) containing the text if found, or None if not available
+    pub fn text(&self) -> Option<&str> {
+        self.response
+            .pointer("/candidates/0/content/parts/0/text")?
+            .as_str()
     }
 }

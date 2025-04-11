@@ -1,6 +1,6 @@
 use ollie_rs::Gemini;
+use ollie_rs::GeminiRequest;
 use ollie_rs::GeminiResponse;
-use ollie_rs::GeminiTextRequest;
 use std::env;
 
 #[tokio::main]
@@ -11,11 +11,11 @@ async fn main() {
     // Create a new Gemini client with the API key.
     let gemini = Gemini::new(&api_key);
 
-    // Choose a model
-    let model = "gemma-3-27b-it"; // Use an appropriate model that's available to you
+    // Choose a model - replace with an appropriate model available to your API key
+    let model = "gemma-3-27b-it";
 
-    // Create a simple text request using the GeminiTextRequest helper.
-    let request = GeminiTextRequest::new("Why is the sky blue?");
+    // Create a request with a text prompt
+    let request = GeminiRequest::text("Why is the sky blue?");
 
     println!("Sending request to Gemini API...");
 
@@ -25,7 +25,7 @@ async fn main() {
     // Parse the JSON response into a GeminiResponse struct
     let response = GeminiResponse::new(response_json);
 
-    // Extract and print just the text content
+    // Extract and print just the text content from the response
     if let Some(text) = response.text() {
         println!("Response from Gemini:\n{}", text);
     }

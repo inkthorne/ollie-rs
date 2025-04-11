@@ -1,4 +1,4 @@
-use ollie_rs::{Gemini, GeminiResponse, GeminiTextRequest};
+use ollie_rs::{Gemini, GeminiRequest, GeminiResponse};
 use std::env;
 use std::io::Write;
 
@@ -10,11 +10,13 @@ async fn main() {
     // Create a new Gemini client with the API key.
     let gemini = Gemini::new(&api_key);
 
-    // Choose a model
-    let model = "gemma-3-27b-it"; // Use an appropriate model that's available to you
+    // Choose a model - use one appropriate for your API key access
+    // Examples of available models:
+    // let model = "gemma-3-27b-it";
+    let model = "gemini-2.0-flash";
 
-    // Create a simple text request using the GeminiTextRequest helper.
-    let request = GeminiTextRequest::new("Tell me a short story about a curious fox.");
+    // Create a simple text request using the GeminiRequest::text helper method
+    let request = GeminiRequest::text("Tell me a short story about a curious fox.");
 
     println!("Sending streaming request to Gemini API...");
 
@@ -26,7 +28,7 @@ async fn main() {
 
     println!("Receiving streamed response:");
 
-    // Process the streaming response using the provided method
+    // Process the streaming response chunk by chunk
     while let Some(json_response) = Gemini::read_stream(&mut http_response).await {
         let gemini_response = GeminiResponse::new(json_response);
         if let Some(text) = gemini_response.text() {
