@@ -4,14 +4,21 @@ use std::io::Write;
 
 #[tokio::main]
 async fn main() {
-    // Create the Gemini client.
+    // Get the API key from environment variable.
     let api_key = env::var("GEMINI_API_KEY").expect("GEMINI_API_KEY environment variable not set");
-    let gemini = Gemini::new("gemini-2.0-flash", &api_key);
+
+    // Choose a model.
+    let model = "gemma-3-27b-it";
+
+    // Create the Gemini client using the 'model' and 'api_key'.
+    let gemini = Gemini::new(model, &api_key);
+
+    // Create a request with a text prompt.
+    let request = GeminiRequest::from_str("Tell me a short story about a curious fox.");
 
     println!("\nSending streaming request to Gemini API...\n");
 
     // Send the request to generate a story.
-    let request = GeminiRequest::text("Tell me a short story about a curious fox.");
     let mut stream = gemini.generate_stream(&request).await.unwrap();
 
     // Print the response as they arrive.

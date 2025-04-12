@@ -328,7 +328,7 @@ mod tests {
         let model = "gemma-3-27b-it"; // Alternative: "gemini-2.0-flash"
         let gemini = Gemini::new(model, &api_key());
 
-        let request = GeminiRequest::text("Explain how AI works in a few sentences.");
+        let request = GeminiRequest::from_str("Explain how AI works in a few sentences.");
         let stream = gemini.generate_stream(&request).await;
 
         if let Err(err) = &stream {
@@ -360,7 +360,7 @@ mod tests {
         let model = "gemma-3-27b-it"; // Alternative: "gemini-2.0-flash"
         let gemini = Gemini::new(model, &api_key());
 
-        let request = GeminiRequest::text("Explain how AI works in a few sentences.");
+        let request = GeminiRequest::from_str("Explain how AI works in a few sentences.");
         let gemini_response = gemini.generate(&request).await;
 
         match &gemini_response {

@@ -14,7 +14,7 @@ async fn main() {
     let gemini = Gemini::new(model, &api_key);
 
     // Create a new chat 'user' request.
-    let request = GeminiRequest::user("Why is the sky blue?");
+    let request = GeminiRequest::from_user_prompt("Why is the sky blue?");
 
     println!("Sending request to Gemini API...");
 

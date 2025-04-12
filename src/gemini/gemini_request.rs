@@ -38,8 +38,8 @@ impl GeminiRequest {
     ///
     /// # Returns
     /// * A new GeminiRequest instance with the text added
-    pub fn text(text: &str) -> Self {
-        let content = GeminiContent::text(text);
+    pub fn from_str(text: &str) -> Self {
+        let content = GeminiContent::from_str(text);
         let mut request = GeminiRequest::new();
         request.add_content(content.to_json());
         request
@@ -55,8 +55,25 @@ impl GeminiRequest {
     ///
     /// # Returns
     /// * A new GeminiRequest instance with the user text added
-    pub fn user(text: &str) -> Self {
-        let content = GeminiContent::user(text);
+    pub fn from_user_prompt(text: &str) -> Self {
+        let content = GeminiContent::from_user_prompt(text);
+        let mut request = GeminiRequest::new();
+        request.add_content(content.to_json());
+        request
+    }
+
+    /// Creates a new GeminiRequest with a system text input.
+    ///
+    /// This is a convenience method that creates a request with a single content
+    /// object containing the provided text with the role set to "system".
+    ///
+    /// # Arguments
+    /// * `text` - The text to include in the request as system content
+    ///
+    /// # Returns
+    /// * A new GeminiRequest instance with the system text added
+    pub fn from_system_prompt(text: &str) -> Self {
+        let content = GeminiContent::from_system_prompt(text);
         let mut request = GeminiRequest::new();
         request.add_content(content.to_json());
         request
@@ -71,7 +88,7 @@ impl GeminiRequest {
     ///
     /// # Returns
     /// * A new GeminiRequest instance with the provided JSON
-    pub fn json(json: JsonValue) -> Self {
+    pub fn from_json(json: JsonValue) -> Self {
         GeminiRequest {
             request: json.clone(),
         }
