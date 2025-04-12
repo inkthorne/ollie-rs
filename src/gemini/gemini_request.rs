@@ -62,12 +62,35 @@ impl GeminiRequest {
         request
     }
 
+    /// Creates a new GeminiRequest from an existing JSON value.
+    ///
+    /// This is useful when you already have a JsonValue that you want to use as a request.
+    ///
+    /// # Arguments
+    /// * `json` - The JsonValue to use as the request
+    ///
+    /// # Returns
+    /// * A new GeminiRequest instance with the provided JSON
+    pub fn json(json: JsonValue) -> Self {
+        GeminiRequest {
+            request: json.clone(),
+        }
+    }
+
     /// Returns the internal JSON object.
     ///
     /// # Returns
     /// * A reference to the JSON object representing the request
     pub fn as_json(&self) -> &JsonValue {
         &self.request
+    }
+
+    /// Consumes the request and returns the internal JSON object.
+    ///
+    /// # Returns
+    /// * The JSON object representing the request
+    pub fn to_json(self) -> JsonValue {
+        self.request
     }
 
     /// Converts the request to a pretty-printed JSON string.

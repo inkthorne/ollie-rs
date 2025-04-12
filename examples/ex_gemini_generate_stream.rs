@@ -12,7 +12,7 @@ async fn main() {
 
     // Send the request to generate a story.
     let request = GeminiRequest::text("Tell me a short story about a curious fox.");
-    let mut stream = gemini.generate_stream(request.as_json()).await.unwrap();
+    let mut stream = gemini.generate_stream(&request).await.unwrap();
 
     // Print the response as they arrive.
     while let Some(response) = stream.response().await {

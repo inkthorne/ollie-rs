@@ -1,4 +1,4 @@
-use crate::{GeminiResponse, GeminiResponseStream};
+use crate::{GeminiRequest, GeminiResponse, GeminiResponseStream};
 use reqwest::Response as HttpResponse;
 use serde_json::Value as JsonValue;
 use std::error::Error;
@@ -75,7 +75,7 @@ impl Gemini {
     ///
     /// # Arguments
     ///
-    /// * `content` - A JSON value containing the request content for the Gemini API.
+    /// * `request` - A GeminiRequest containing the request content for the Gemini API.
     ///
     /// # Returns
     ///
@@ -90,7 +90,7 @@ impl Gemini {
     /// * The response text cannot be parsed as JSON
     pub async fn generate(
         &self,
-        content: &serde_json::Value,
+        request: &GeminiRequest,
     ) -> Result<GeminiResponse, Box<dyn Error>> {
         // Construct the request URL.
         let url = format!(
@@ -99,7 +99,12 @@ impl Gemini {
         );
 
         // Send the HTTP request.
-        let response = self.https_client.post(&url).json(&content).send().await;
+        let response = self
+            .https_client
+            .post(&url)
+            .json(request.as_json())
+            .send()
+            .await;
 
         // If there's an HTTP error, return it.
         if let Err(err) = response {
@@ -128,7 +133,7 @@ impl Gemini {
     ///
     /// # Arguments
     ///
-    /// * `content` - A JSON value containing the request content for the Gemini API.
+    /// * `request` - A GeminiRequest containing the request content for the Gemini API.
     ///
     /// # Returns
     ///
@@ -142,7 +147,7 @@ impl Gemini {
     /// * The API returns a non-success status code
     pub async fn generate_stream(
         &self,
-        content: &JsonValue,
+        request: &GeminiRequest,
     ) -> Result<GeminiResponseStream, Box<dyn Error>> {
         // Construct the request URL.
         let url = format!(
@@ -151,7 +156,12 @@ impl Gemini {
         );
 
         // Send the HTTP request.
-        let response = self.https_client.post(&url).json(&content).send().await;
+        let response = self
+            .https_client
+            .post(&url)
+            .json(request.as_json())
+            .send()
+            .await;
 
         // Return the HTTP response or the error.
         match response {
@@ -319,7 +329,7 @@ mod tests {
         let gemini = Gemini::new(model, &api_key());
 
         let request = GeminiRequest::text("Explain how AI works in a few sentences.");
-        let stream = gemini.generate_stream(request.as_json()).await;
+        let stream = gemini.generate_stream(&request).await;
 
         if let Err(err) = &stream {
             assert!(stream.is_ok(), "{err}");
@@ -351,7 +361,7 @@ mod tests {
         let gemini = Gemini::new(model, &api_key());
 
         let request = GeminiRequest::text("Explain how AI works in a few sentences.");
-        let gemini_response = gemini.generate(request.as_json()).await;
+        let gemini_response = gemini.generate(&request).await;
 
         match &gemini_response {
             Ok(gemini_response) => {

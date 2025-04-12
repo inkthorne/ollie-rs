@@ -19,7 +19,7 @@ async fn main() {
     println!("Sending request to Gemini API...");
 
     // Send the request and get the response.
-    let response = gemini.generate(request.as_json()).await.unwrap();
+    let response = gemini.generate(&request).await.unwrap();
 
     // Extract and print just the text content from the response
     if let Some(text) = response.text() {

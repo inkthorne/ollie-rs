@@ -14,14 +14,12 @@ async fn main() {
     let gemini = Gemini::new(model, &api_key);
 
     // Create a new chat 'user' request.
-    // TODO: make a 'GeminiRequest::from_json()' method
     let request = GeminiRequest::user("Why is the sky blue?");
 
     println!("Sending request to Gemini API...");
 
     // Send the request and get the response.
-    // TODO: change 'generate()' to take a GeminiRequest directly
-    let response = gemini.generate(request.as_json()).await.unwrap();
+    let response = gemini.generate(&request).await.unwrap();
 
     // Extract and print just the text content
     if let Some(text) = response.text() {
