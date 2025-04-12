@@ -1,5 +1,6 @@
 use serde_json::Value as JsonValue;
 use serde_json::json;
+use std::fmt;
 
 // ===
 // STRUCT: GeminiContent
@@ -55,19 +56,6 @@ impl GeminiContent {
         content
     }
 
-    /// Creates a new GeminiContent with a text part and sets the role to "system".
-    ///
-    /// # Arguments
-    /// * `text` - The text to add to the content
-    ///
-    /// # Returns
-    /// * A new GeminiContent instance with the role set to "system" and the text added
-    pub fn from_system_prompt(text: &str) -> Self {
-        let mut content = GeminiContent::new();
-        content.set_role("system").add_text(text);
-        content
-    }
-
     /// Creates a new GeminiContent from an existing JSON value.
     ///
     /// # Arguments
@@ -95,6 +83,15 @@ impl GeminiContent {
     /// * The JSON value representing the content
     pub fn to_json(self) -> JsonValue {
         self.content
+    }
+
+    /// Converts the content to a pretty-printed JSON string.
+    ///
+    /// # Returns
+    /// * A formatted JSON string representation of the content,
+    ///   or an empty string if serialization fails
+    pub fn to_string_pretty(&self) -> String {
+        serde_json::to_string_pretty(&self.content).unwrap_or_default()
     }
 
     /// Sets the role for this content.
@@ -174,6 +171,23 @@ impl GeminiContent {
 }
 
 // ===
+// TRAIT: GeminiContent (fmt::Display)
+// ===
+
+impl fmt::Display for GeminiContent {
+    /// Formats the GeminiContent for display using pretty-printed JSON.
+    ///
+    /// # Arguments
+    /// * `f` - The formatter to write the output to
+    ///
+    /// # Returns
+    /// * Result indicating whether the formatting operation succeeded
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_string_pretty())
+    }
+}
+
+// ===
 // TESTS: GeminiContent
 // ===
 
@@ -211,25 +225,6 @@ mod tests {
 
         // Verify role is set to "user"
         assert_eq!(content.as_json()["role"], "user");
-
-        // Verify parts array exists and has one entry with the correct text
-        assert!(content.as_json()["parts"].is_array());
-        assert_eq!(content.as_json()["parts"].as_array().unwrap().len(), 1);
-        assert_eq!(content.as_json()["parts"][0]["text"], text);
-    }
-
-    /// Tests creating a GeminiContent with system role.
-    ///
-    /// This test verifies that:
-    /// - A GeminiContent can be created with system role and text content
-    /// - Both role and text are properly structured in the JSON
-    #[test]
-    fn test_from_system_prompt() {
-        let text = "You are a helpful AI assistant";
-        let content = GeminiContent::from_system_prompt(text);
-
-        // Verify role is set to "system"
-        assert_eq!(content.as_json()["role"], "system");
 
         // Verify parts array exists and has one entry with the correct text
         assert!(content.as_json()["parts"].is_array());

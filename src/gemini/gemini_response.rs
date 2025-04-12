@@ -1,4 +1,5 @@
 use serde_json::Value as JsonValue;
+use std::fmt;
 
 // ===
 // STRUCT: GeminiResponse
@@ -66,5 +67,22 @@ impl GeminiResponse {
     /// * Some(&JsonValue) containing the content if found, or None if not available
     pub fn content(&self) -> Option<&JsonValue> {
         self.response.pointer("/candidates/0/content")
+    }
+}
+
+// ===
+// TRAIT: GeminiResponse (fmt::Display)
+// ===
+
+impl fmt::Display for GeminiResponse {
+    /// Formats the GeminiResponse for display using pretty-printed JSON.
+    ///
+    /// # Arguments
+    /// * `f` - The formatter to write the output to
+    ///
+    /// # Returns
+    /// * Result indicating whether the formatting operation succeeded
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_string_pretty())
     }
 }

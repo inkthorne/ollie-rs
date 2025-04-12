@@ -224,8 +224,14 @@ impl GeminiRequest {
 // TRAIT: GeminiRequest (fmt::Display)
 // ===
 
-// Implement Display trait to allow pretty-printing of requests with `{}`
 impl fmt::Display for GeminiRequest {
+    /// Formats the GeminiResponse for display using pretty-printed JSON.
+    ///
+    /// # Arguments
+    /// * `f` - The formatter to write the output to
+    ///
+    /// # Returns
+    /// * Result indicating whether the formatting operation succeeded
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.to_string_pretty())
     }
