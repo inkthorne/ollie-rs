@@ -8,6 +8,7 @@ use serde_json::Value as JsonValue;
 /// Gemini response data from the server-sent event (SSE) format.
 pub struct GeminiResponseStream {
     http_response: HttpResponse,
+    responses: Vec<GeminiResponse>,
 }
 
 impl GeminiResponseStream {
@@ -19,7 +20,10 @@ impl GeminiResponseStream {
     /// # Returns
     /// * A new GeminiResponseStream instance
     pub fn new(http_response: HttpResponse) -> Self {
-        GeminiResponseStream { http_response }
+        GeminiResponseStream {
+            http_response,
+            responses: Vec::new(),
+        }
     }
 
     /// Fetches and parses the next chunk of data from the stream.
@@ -41,7 +45,37 @@ impl GeminiResponseStream {
         let string = String::from_utf8(bytes.to_vec()).ok()?;
         let slice = string.split_once("data:")?.1;
         let value: JsonValue = serde_json::from_str(&slice).ok()?;
+        let response = GeminiResponse::new(value);
 
-        Some(GeminiResponse::new(value))
+        // Save the response
+        self.responses.push(response.clone());
+
+        Some(response)
+    }
+
+    /// Returns a reference to the stored responses that have been collected from the stream.
+    ///
+    /// This method allows accessing all the response objects that have been
+    /// received from the stream so far.
+    ///
+    /// # Returns
+    /// * A reference to the vector of GeminiResponse objects
+    pub fn responses(&self) -> &Vec<GeminiResponse> {
+        &self.responses
+    }
+
+    /// Concatenates the text content from all responses into a single String.
+    ///
+    /// This method iterates through all collected responses and combines
+    /// their text content sequentially.
+    ///
+    /// # Returns
+    /// * A String containing the combined text from all responses
+    pub fn text(&self) -> String {
+        self.responses
+            .iter()
+            .filter_map(|response| response.text())
+            .collect::<Vec<&str>>()
+            .join("")
     }
 }

@@ -9,6 +9,7 @@ use std::fmt;
 ///
 /// This struct wraps the JSON response from the Gemini API and provides
 /// convenient methods for accessing the response data.
+#[derive(Clone)]
 pub struct GeminiResponse {
     response: JsonValue,
 }
