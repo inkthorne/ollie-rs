@@ -71,34 +71,6 @@ impl Gemini {
         &self.base_url
     }
 
-    /// Sends a chat request to the Gemini API.
-    ///
-    /// This method sends the request to the Gemini API and returns the response
-    /// from the Gemini model.
-    ///
-    /// # Arguments
-    ///
-    /// * `request` - A reference to a GeminiRequest containing the chat content.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<GeminiResponse, Box<dyn Error>>` - A GeminiResponse containing the API response if successful,
-    ///   or an error if the request failed.
-    ///
-    /// # Errors
-    ///
-    /// This method returns the same errors as the `generate` method:
-    /// * The HTTP request fails
-    /// * The API response cannot be parsed as text
-    /// * The response text cannot be parsed as JSON
-    pub async fn chat(
-        &self,
-        request: &GeminiRequest,
-    ) -> Result<GeminiResponse, Box<dyn Error>> {
-        let response = self.generate(request).await?;
-        Ok(response)
-    }
-
     /// Sends a content generation request to the Gemini API and returns the response.
     ///
     /// # Arguments

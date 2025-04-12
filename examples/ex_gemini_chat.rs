@@ -19,7 +19,7 @@ async fn main() {
 
     // Send the 1st request and get the response.
     println!("Sending request #1 to Gemini API...");
-    let response = gemini.chat(&request).await.unwrap();
+    let response = gemini.generate(&request).await.unwrap();
 
     // Print just the text response.
     if let Some(text) = response.text() {
@@ -37,7 +37,7 @@ async fn main() {
 
     // Send the 2nd request and get the response.
     println!("Sending request #2 to Gemini API...");
-    let response = gemini.chat(&mut request).await.unwrap();
+    let response = gemini.generate(&request).await.unwrap();
 
     // Print just the text response.
     if let Some(text) = response.text() {
