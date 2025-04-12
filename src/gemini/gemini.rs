@@ -71,6 +71,36 @@ impl Gemini {
         &self.base_url
     }
 
+    /// Sends a chat request to the Gemini API and updates the conversation history.
+    ///
+    /// This method sends the request to the Gemini API, then adds the response to the
+    /// request's conversation history to maintain context for future messages.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - A mutable reference to a GeminiRequest containing the chat content.
+    ///               The request will be updated with the response for conversation tracking.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<GeminiResponse, Box<dyn Error>>` - A GeminiResponse containing the API response if successful,
+    ///   or an error if the request failed.
+    ///
+    /// # Errors
+    ///
+    /// This method returns the same errors as the `generate` method:
+    /// * The HTTP request fails
+    /// * The API response cannot be parsed as text
+    /// * The response text cannot be parsed as JSON
+    pub async fn chat(
+        &self,
+        request: &mut GeminiRequest,
+    ) -> Result<GeminiResponse, Box<dyn Error>> {
+        let response = self.generate(request).await?;
+        request.add_response(&response);
+        Ok(response)
+    }
+
     /// Sends a content generation request to the Gemini API and returns the response.
     ///
     /// # Arguments

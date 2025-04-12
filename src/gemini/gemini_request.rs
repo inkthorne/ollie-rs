@@ -1,5 +1,6 @@
-use crate::GeminiContent;
+use crate::{GeminiContent, GeminiResponse};
 use serde_json::Value as JsonValue;
+use std::fmt;
 
 // ===
 // ENUM: GeminiRole
@@ -162,6 +163,23 @@ impl GeminiRequest {
         self
     }
 
+    /// Adds the content from a GeminiResponse to the request.
+    ///
+    /// This method extracts the content from a GeminiResponse and adds it
+    /// to this request's contents array.
+    ///
+    /// # Arguments
+    /// * `response` - The GeminiResponse whose content should be added
+    ///
+    /// # Returns
+    /// * A mutable reference to self for method chaining
+    pub fn add_response(&mut self, response: &GeminiResponse) -> &mut Self {
+        if let Some(content) = response.content() {
+            self.add_content(content.clone());
+        }
+        self
+    }
+
     /// Adds a new content object to the request and returns a builder for it.
     ///
     /// This method creates a new content object in the request and returns
@@ -182,6 +200,34 @@ impl GeminiRequest {
             .push(content);
 
         self
+    }
+
+    /// Adds a new prompt to the request with the specified role and text.
+    ///
+    /// This is a convenience method that creates a new content object with
+    /// the specified role and text and adds it to the request.
+    ///
+    /// # Arguments
+    /// * `role` - The role to use for the content (system, user, or tool)
+    /// * `text` - The text to include in the content
+    ///
+    /// # Returns
+    /// * A mutable reference to self for method chaining
+    pub fn add_prompt(&mut self, role: GeminiRole, text: &str) -> &mut Self {
+        let mut content = GeminiContent::new();
+        content.set_role(role.as_str()).add_text(text);
+        self.add_content(content.to_json())
+    }
+}
+
+// ===
+// TRAIT: GeminiRequest (fmt::Display)
+// ===
+
+// Implement Display trait to allow pretty-printing of requests with `{}`
+impl fmt::Display for GeminiRequest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_string_pretty())
     }
 }
 

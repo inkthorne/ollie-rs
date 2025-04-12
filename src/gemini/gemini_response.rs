@@ -56,4 +56,15 @@ impl GeminiResponse {
             .pointer("/candidates/0/content/parts/0/text")?
             .as_str()
     }
+
+    /// Extracts the content object from the first candidate in the response.
+    ///
+    /// This method navigates through the response structure to find
+    /// the content object from the first candidate.
+    ///
+    /// # Returns
+    /// * Some(&JsonValue) containing the content if found, or None if not available
+    pub fn content(&self) -> Option<&JsonValue> {
+        self.response.pointer("/candidates/0/content")
+    }
 }
