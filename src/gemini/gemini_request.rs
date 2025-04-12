@@ -2,6 +2,51 @@ use crate::GeminiContent;
 use serde_json::Value as JsonValue;
 
 // ===
+// ENUM: GeminiRole
+// ===
+
+/// Represents the role of a content part in a Gemini API request.
+///
+/// The role defines who or what is responsible for a particular content part.
+/// Gemini supports system, user, and tool roles.
+#[derive(Debug, Clone, PartialEq)]
+pub enum GeminiRole {
+    System,
+    User,
+    Tool,
+}
+
+impl GeminiRole {
+    /// Converts the role to its string representation for the API.
+    ///
+    /// # Returns
+    /// * String representation of the role
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            GeminiRole::System => "system",
+            GeminiRole::User => "user",
+            GeminiRole::Tool => "tool",
+        }
+    }
+
+    /// Creates a GeminiRole from a string.
+    ///
+    /// # Arguments
+    /// * `role` - String representation of the role
+    ///
+    /// # Returns
+    /// * The corresponding GeminiRole, or None if the string doesn't match
+    pub fn from_str(role: &str) -> Option<Self> {
+        match role.to_lowercase().as_str() {
+            "system" => Some(GeminiRole::System),
+            "user" => Some(GeminiRole::User),
+            "tool" => Some(GeminiRole::Tool),
+            _ => None,
+        }
+    }
+}
+
+// ===
 // STRUCT: GeminiRequest
 // ===
 
@@ -45,35 +90,22 @@ impl GeminiRequest {
         request
     }
 
-    /// Creates a new GeminiRequest with a user text input.
+    /// Creates a new GeminiRequest with a text input and specified role.
     ///
     /// This is a convenience method that creates a request with a single content
-    /// object containing the provided text with the role set to "user".
+    /// object containing the provided text with the specified role.
     ///
     /// # Arguments
-    /// * `text` - The text to include in the request as user content
+    /// * `role` - The role to use for the content (system, user, or tool)
+    /// * `text` - The text to include in the request
     ///
     /// # Returns
-    /// * A new GeminiRequest instance with the user text added
-    pub fn from_user_prompt(text: &str) -> Self {
-        let content = GeminiContent::from_user_prompt(text);
-        let mut request = GeminiRequest::new();
-        request.add_content(content.to_json());
-        request
-    }
+    /// * A new GeminiRequest instance with the text added with the specified role
+    pub fn from_prompt(role: GeminiRole, text: &str) -> Self {
+        let mut content = GeminiContent::new();
+        content.set_role(role.as_str());
+        content.add_text(text);
 
-    /// Creates a new GeminiRequest with a system text input.
-    ///
-    /// This is a convenience method that creates a request with a single content
-    /// object containing the provided text with the role set to "system".
-    ///
-    /// # Arguments
-    /// * `text` - The text to include in the request as system content
-    ///
-    /// # Returns
-    /// * A new GeminiRequest instance with the system text added
-    pub fn from_system_prompt(text: &str) -> Self {
-        let content = GeminiContent::from_system_prompt(text);
         let mut request = GeminiRequest::new();
         request.add_content(content.to_json());
         request
@@ -220,25 +252,3 @@ mod tests {
         );
     }
 }
-
-/*
-
-// Preferred usage example:
-
-let mut request = GeminiRequest::new();
-request.set_model("gpt-3.5-turbo");
-
-let mut content = request.add_content();
-content
-    .set_role("user")
-    .add_text("Can you tell me the result of executing this code?")
-    .add_code(code);
-
-
-
-// Example code to be executed:
-
-let mut request = GeminiTextRequest::new("How are you today?");
-request.set_model("gpt-3.5-turbo");
-
-*/

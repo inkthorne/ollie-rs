@@ -1,5 +1,6 @@
 use ollie_rs::Gemini;
 use ollie_rs::GeminiRequest;
+use ollie_rs::GeminiRole;
 use std::env;
 
 #[tokio::main]
@@ -14,7 +15,7 @@ async fn main() {
     let gemini = Gemini::new(model, &api_key);
 
     // Create a new chat 'user' request.
-    let request = GeminiRequest::from_user_prompt("Why is the sky blue?");
+    let request = GeminiRequest::from_prompt(GeminiRole::User, "Why is the sky blue?");
 
     println!("Sending request to Gemini API...");
 

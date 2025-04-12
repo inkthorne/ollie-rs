@@ -41,16 +41,17 @@ impl GeminiContent {
         content
     }
 
-    /// Creates a new GeminiContent with a text part and sets the role to "user".
+    /// Creates a new GeminiContent with a text part and sets the role.
     ///
     /// # Arguments
+    /// * `role` - The role to set (e.g., "user", "system")
     /// * `text` - The text to add to the content
     ///
     /// # Returns
-    /// * A new GeminiContent instance with the role set to "user" and the text added
-    pub fn from_user_prompt(text: &str) -> Self {
+    /// * A new GeminiContent instance with the role set and the text added
+    pub fn from_prompt(role: &str, text: &str) -> Self {
         let mut content = GeminiContent::new();
-        content.set_role("user").add_text(text);
+        content.set_role(role).add_text(text);
         content
     }
 
@@ -206,7 +207,7 @@ mod tests {
     #[test]
     fn test_from_user_prompt() {
         let text = "What is machine learning?";
-        let content = GeminiContent::from_user_prompt(text);
+        let content = GeminiContent::from_prompt("user", text);
 
         // Verify role is set to "user"
         assert_eq!(content.as_json()["role"], "user");
