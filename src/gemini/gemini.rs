@@ -71,15 +71,14 @@ impl Gemini {
         &self.base_url
     }
 
-    /// Sends a chat request to the Gemini API and updates the conversation history.
+    /// Sends a chat request to the Gemini API.
     ///
-    /// This method sends the request to the Gemini API, then adds the response to the
-    /// request's conversation history to maintain context for future messages.
+    /// This method sends the request to the Gemini API and returns the response
+    /// from the Gemini model.
     ///
     /// # Arguments
     ///
-    /// * `request` - A mutable reference to a GeminiRequest containing the chat content.
-    ///               The request will be updated with the response for conversation tracking.
+    /// * `request` - A reference to a GeminiRequest containing the chat content.
     ///
     /// # Returns
     ///
@@ -94,10 +93,9 @@ impl Gemini {
     /// * The response text cannot be parsed as JSON
     pub async fn chat(
         &self,
-        request: &mut GeminiRequest,
+        request: &GeminiRequest,
     ) -> Result<GeminiResponse, Box<dyn Error>> {
         let response = self.generate(request).await?;
-        request.add_response(&response);
         Ok(response)
     }
 

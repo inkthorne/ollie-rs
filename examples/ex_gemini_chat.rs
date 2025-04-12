@@ -19,14 +19,17 @@ async fn main() {
 
     // Send the 1st request and get the response.
     println!("Sending request #1 to Gemini API...");
-    let response = gemini.chat(&mut request).await.unwrap();
+    let response = gemini.chat(&request).await.unwrap();
 
     // Print just the text response.
     if let Some(text) = response.text() {
         println!("Response #1 from Gemini:\n{}", text);
     }
 
-    // Add a new prompt to the request.
+    // Add the response to the request for context.
+    request.add_response(&response);
+
+    // Add another prompt to the request.
     request.add_prompt(
         GeminiRole::User,
         "Can you summarize what you just told me in 2 sentences?",
