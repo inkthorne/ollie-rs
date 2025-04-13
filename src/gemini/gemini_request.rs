@@ -85,7 +85,8 @@ impl GeminiRequest {
     /// # Returns
     /// * A new GeminiRequest instance with the text added
     pub fn from_str(text: &str) -> Self {
-        let content = GeminiContent::from_str(text);
+        let mut content = GeminiContent::new();
+        content.add_text(text);
         let mut request = GeminiRequest::new();
         request.add_content(content.to_json());
         request

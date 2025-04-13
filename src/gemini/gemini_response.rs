@@ -1,4 +1,4 @@
-use crate::{GeminiCandidate, GeminiPart};
+use crate::{GeminiCandidate, GeminiContent, GeminiPart};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -35,7 +35,7 @@ impl GeminiResponse {
     /// # Returns
     /// * `Some(&GeminiContent1)` if there is at least one candidate in the response
     /// * `None` if there are no candidates
-    pub fn content(&self) -> Option<&crate::GeminiContent1> {
+    pub fn content(&self) -> Option<&GeminiContent> {
         if let Some(candidate) = self.candidates.get(0) {
             return Some(&candidate.content);
         }

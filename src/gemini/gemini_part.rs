@@ -1,5 +1,36 @@
+use crate::gemini::GeminiContent;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
+
+// ===
+// STRUCT: GeminiPartCodeExecutable
+// ===
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GeminiPartCodeExecutable {
+    pub language: String,
+    pub code: String,
+}
+
+// ===
+// STRUCT: GeminiPartCode
+// ===
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GeminiPartCode {
+    pub executable_code: GeminiPartCodeExecutable,
+}
+
+impl GeminiPartCode {
+    pub fn new(language: &str, code: &str) -> Self {
+        GeminiPartCode {
+            executable_code: GeminiPartCodeExecutable {
+                language: language.to_string(),
+                code: code.to_string(),
+            },
+        }
+    }
+}
 
 // ===
 // STRUCT: GeminiPartText
@@ -30,7 +61,7 @@ pub struct GeminiPartUnknown {
 }
 
 // ===
-// STRUCT: GeminiPart
+// ENUM: GeminiPart
 // ===
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -38,16 +69,7 @@ pub struct GeminiPartUnknown {
 pub enum GeminiPart {
     Text(GeminiPartText),
     FunctionCall(GeminiPartFunctionCall),
-}
-
-// ===
-// STRUCT: GeminiContent1
-// ===
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GeminiContent1 {
-    pub role: Option<String>,
-    pub parts: Vec<GeminiPart>,
+    Code(GeminiPartCode),
 }
 
 // ===
@@ -57,7 +79,7 @@ pub struct GeminiContent1 {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GeminiCandidate {
     pub index: Option<u32>,
-    pub content: GeminiContent1,
+    pub content: GeminiContent,
 
     #[serde(rename = "finishReason")]
     pub finish_reason: Option<String>,
