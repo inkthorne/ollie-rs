@@ -34,7 +34,7 @@ impl GeminiResponseStream {
     /// # Returns
     /// * `Some(GeminiResponse)` if a valid response chunk was received and parsed
     /// * `None` if the stream has ended or an error occurred during parsing
-    pub async fn response(&mut self) -> Option<GeminiResponse> {
+    pub async fn read(&mut self) -> Option<GeminiResponse> {
         let bytes = self.http_response.chunk().await.ok()?;
 
         if bytes.is_none() {

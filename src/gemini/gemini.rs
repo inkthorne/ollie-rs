@@ -337,7 +337,7 @@ mod tests {
 
         let mut stream = stream.unwrap();
 
-        while let Some(response) = stream.response().await {
+        while let Some(response) = stream.read().await {
             println!("{}\n", response.to_string_pretty());
         }
     }

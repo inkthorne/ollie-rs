@@ -22,7 +22,7 @@ async fn main() {
     let mut stream = gemini.generate_stream(&request).await.unwrap();
 
     // Print the response as they arrive.
-    while let Some(response) = stream.response().await {
+    while let Some(response) = stream.read().await {
         if let Some(text) = response.text() {
             print!("{}", text);
             std::io::stdout().flush().unwrap();
