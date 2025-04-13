@@ -1,4 +1,3 @@
-use crate::gemini::GeminiContent;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
@@ -70,17 +69,4 @@ pub enum GeminiPart {
     Text(GeminiPartText),
     FunctionCall(GeminiPartFunctionCall),
     Code(GeminiPartCode),
-}
-
-// ===
-// STRUCT: GeminiCandidate
-// ===
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GeminiCandidate {
-    pub index: Option<u32>,
-    pub content: GeminiContent,
-
-    #[serde(rename = "finishReason")]
-    pub finish_reason: Option<String>,
 }

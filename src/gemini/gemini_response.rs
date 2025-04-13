@@ -1,6 +1,19 @@
-use crate::{GeminiCandidate, GeminiContent, GeminiPart};
+use crate::{GeminiContent, GeminiPart};
 use serde::{Deserialize, Serialize};
 use std::fmt;
+
+// ===
+// STRUCT: GeminiCandidate
+// ===
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GeminiCandidate {
+    pub index: Option<u32>,
+    pub content: GeminiContent,
+
+    #[serde(rename = "finishReason")]
+    pub finish_reason: Option<String>,
+}
 
 // ===
 // STRUCT: GeminiResponse
