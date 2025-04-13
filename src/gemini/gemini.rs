@@ -99,11 +99,13 @@ impl Gemini {
             self.base_url, self.model, self.api_key
         );
 
+        let request_json = request.to_json();
+
         // Send the HTTP request.
         let response = self
             .https_client
             .post(&url)
-            .json(request.as_json())
+            .json(&request_json)
             .send()
             .await;
 
@@ -150,6 +152,7 @@ impl Gemini {
         request: &GeminiRequest,
     ) -> Result<GeminiResponse, Box<dyn Error>> {
         let response_string = self.generate_raw(request).await?;
+        println!("Response: {}", response_string);
 
         // Deserialize the response string into a GeminiResponse1 object.
         let gemini_response: GeminiResponse = serde_json::from_str(&response_string)?;
@@ -186,11 +189,13 @@ impl Gemini {
             self.base_url, self.model, self.api_key
         );
 
+        let request_json = request.to_json();
+
         // Send the HTTP request.
         let response = self
             .https_client
             .post(&url)
-            .json(request.as_json())
+            .json(&request_json)
             .send()
             .await;
 

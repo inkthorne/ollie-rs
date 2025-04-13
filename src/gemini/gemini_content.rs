@@ -10,7 +10,7 @@ use serde_json::Value as JsonValue;
 ///
 /// This struct holds the parts that make up a message to be sent to the Gemini API,
 /// with an optional role field to identify the speaker (e.g., "user" or "model").
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GeminiContent {
     /// The role of the message sender (e.g., "user" or "model").
     /// When None, the role is determined by the API based on context.

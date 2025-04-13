@@ -6,7 +6,7 @@ use serde_json::Value as JsonValue;
 // STRUCT: GeminiPartCodeExecutable
 // ===
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GeminiPartCodeExecutable {
     pub language: String,
     pub code: String,
@@ -16,7 +16,7 @@ pub struct GeminiPartCodeExecutable {
 // STRUCT: GeminiPartCode
 // ===
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GeminiPartCode {
     pub executable_code: GeminiPartCodeExecutable,
 }
@@ -36,7 +36,7 @@ impl GeminiPartCode {
 // STRUCT: GeminiPartText
 // ===
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GeminiPartText {
     pub text: String,
 }
@@ -45,7 +45,7 @@ pub struct GeminiPartText {
 // STRUCT: GeminiPartFunctionCall
 // ===
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GeminiPartFunctionCall {
     pub function_name: String,
     pub arguments: JsonValue,
@@ -64,7 +64,7 @@ pub struct GeminiPartUnknown {
 // ENUM: GeminiPart
 // ===
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum GeminiPart {
     Text(GeminiPartText),

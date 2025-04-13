@@ -1,4 +1,5 @@
 use crate::{GeminiContent, GeminiResponse};
+use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::fmt;
 
@@ -51,12 +52,12 @@ impl GeminiRole {
 // STRUCT: GeminiRequest
 // ===
 
-/// Represents a request to the Gemini AI model.
+/// Represents a request to the Gemini API.
 ///
-/// This struct allows building a complete request object with
-/// model selection and content parts.
+/// Contains a collection of content parts that make up the conversation or prompt.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GeminiRequest {
-    request: JsonValue,
+    pub contents: Vec<GeminiContent>,
 }
 
 // ===
@@ -67,158 +68,104 @@ impl GeminiRequest {
     /// Creates a new empty GeminiRequest.
     ///
     /// # Returns
-    /// * A new GeminiRequest instance
+    /// * A new GeminiRequest with no content
     pub fn new() -> Self {
-        GeminiRequest {
-            request: JsonValue::default(),
+        Self {
+            contents: Vec::new(),
         }
     }
 
-    /// Creates a new GeminiRequest with a text input.
-    ///
-    /// This is a convenience method that creates a request with a single content
-    /// object containing the provided text.
+    /// Creates a GeminiRequest from a prompt with a specified role.
     ///
     /// # Arguments
-    /// * `text` - The text to include in the request
+    /// * `role` - The role of the content (system, user, or tool)
+    /// * `text` - The text content of the prompt
     ///
     /// # Returns
-    /// * A new GeminiRequest instance with the text added
-    pub fn from_str(text: &str) -> Self {
-        let mut content = GeminiContent::new();
-        content.add_text(text);
-        let mut request = GeminiRequest::new();
-        request.add_content(content.to_json());
-        request
-    }
-
-    /// Creates a new GeminiRequest with a text input and specified role.
-    ///
-    /// This is a convenience method that creates a request with a single content
-    /// object containing the provided text with the specified role.
-    ///
-    /// # Arguments
-    /// * `role` - The role to use for the content (system, user, or tool)
-    /// * `text` - The text to include in the request
-    ///
-    /// # Returns
-    /// * A new GeminiRequest instance with the text added with the specified role
+    /// * A new GeminiRequest containing the prompt
     pub fn from_prompt(role: GeminiRole, text: &str) -> Self {
         let mut content = GeminiContent::new();
         content.set_role(role.as_str());
         content.add_text(text);
 
         let mut request = GeminiRequest::new();
-        request.add_content(content.to_json());
+        request.add_content(content);
         request
     }
 
-    /// Creates a new GeminiRequest from an existing JSON value.
-    ///
-    /// This is useful when you already have a JsonValue that you want to use as a request.
+    /// Creates a GeminiRequest from a text string.
     ///
     /// # Arguments
-    /// * `json` - The JsonValue to use as the request
+    /// * `text` - The text content to include in the request
     ///
     /// # Returns
-    /// * A new GeminiRequest instance with the provided JSON
-    pub fn from_json(json: JsonValue) -> Self {
-        GeminiRequest {
-            request: json.clone(),
-        }
+    /// * A new GeminiRequest containing the text
+    pub fn from_str(text: &str) -> Self {
+        let mut content = GeminiContent::new();
+        content.add_text(text);
+
+        let mut request = GeminiRequest::new();
+        request.add_content(content);
+        request
     }
 
-    /// Returns the internal JSON object.
+    /// Converts the request to a JSON value.
     ///
     /// # Returns
-    /// * A reference to the JSON object representing the request
-    pub fn as_json(&self) -> &JsonValue {
-        &self.request
-    }
-
-    /// Consumes the request and returns the internal JSON object.
-    ///
-    /// # Returns
-    /// * The JSON object representing the request
-    pub fn to_json(self) -> JsonValue {
-        self.request
+    /// * JsonValue representation of the request
+    pub fn to_json(&self) -> JsonValue {
+        serde_json::to_value(&self).unwrap_or_default()
     }
 
     /// Converts the request to a pretty-printed JSON string.
     ///
     /// # Returns
-    /// * A formatted JSON string representation of the request
+    /// * A formatted JSON string representing the request
     pub fn to_string_pretty(&self) -> String {
-        serde_json::to_string_pretty(&self.request).unwrap_or_default()
+        let request_json = self.to_json();
+        serde_json::to_string_pretty(&request_json).unwrap_or_default()
     }
 
-    /// Sets the model to use for this request.
+    /// Adds a content part to the request.
     ///
     /// # Arguments
-    /// * `model` - The name of the model to use
+    /// * `content` - The GeminiContent to add
     ///
     /// # Returns
-    /// * A mutable reference to self for method chaining
-    pub fn set_model(&mut self, model: &str) -> &mut Self {
-        self.request["model"] = JsonValue::String(model.to_string());
+    /// * &mut Self for method chaining
+    pub fn add_content(&mut self, content: GeminiContent) -> &mut Self {
+        self.contents.push(content);
         self
     }
 
-    /// Adds the content from a GeminiResponse to the request.
-    ///
-    /// This method extracts the content from a GeminiResponse and adds it
-    /// to this request's contents array.
+    /// Adds a prompt with a specified role to the request.
     ///
     /// # Arguments
-    /// * `response` - The GeminiResponse whose content should be added
+    /// * `role` - The role of the content (system, user, or tool)
+    /// * `text` - The text content of the prompt
     ///
     /// # Returns
-    /// * A mutable reference to self for method chaining
-    pub fn add_response(&mut self, response: &GeminiResponse) -> &mut Self {
-        if let Some(content) = response.content() {
-            let content_json = serde_json::to_value(content).unwrap_or_default();
-            self.add_content(content_json);
-        }
-        self
-    }
-
-    /// Adds a new content object to the request and returns a builder for it.
-    ///
-    /// This method creates a new content object in the request and returns
-    /// a GeminiContent builder that can be used to construct its parts.
-    ///
-    /// # Returns
-    /// * A GeminiContent builder for the new content object
-    pub fn add_content(&mut self, content: JsonValue) -> &mut Self {
-        // Ensure 'contents' is an array.
-        if !self.request.get("contents").map_or(false, |c| c.is_array()) {
-            self.request["contents"] = JsonValue::Array(vec![]);
-        }
-
-        // Add new 'content' to the array.
-        self.request["contents"]
-            .as_array_mut()
-            .unwrap()
-            .push(content);
-
-        self
-    }
-
-    /// Adds a new prompt to the request with the specified role and text.
-    ///
-    /// This is a convenience method that creates a new content object with
-    /// the specified role and text and adds it to the request.
-    ///
-    /// # Arguments
-    /// * `role` - The role to use for the content (system, user, or tool)
-    /// * `text` - The text to include in the content
-    ///
-    /// # Returns
-    /// * A mutable reference to self for method chaining
+    /// * &mut Self for method chaining
     pub fn add_prompt(&mut self, role: GeminiRole, text: &str) -> &mut Self {
         let mut content = GeminiContent::new();
         content.set_role(role.as_str()).add_text(text);
-        self.add_content(content.to_json())
+        self.add_content(content)
+    }
+
+    /// Adds a response content to the request.
+    ///
+    /// This is useful for building conversation history.
+    ///
+    /// # Arguments
+    /// * `response` - The GeminiResponse to add to the request
+    ///
+    /// # Returns
+    /// * &mut Self for method chaining
+    pub fn add_response(&mut self, response: &GeminiResponse) -> &mut Self {
+        if let Some(content) = response.content() {
+            self.add_content(content.clone());
+        }
+        self
     }
 }
 
@@ -227,13 +174,6 @@ impl GeminiRequest {
 // ===
 
 impl fmt::Display for GeminiRequest {
-    /// Formats the GeminiResponse for display using pretty-printed JSON.
-    ///
-    /// # Arguments
-    /// * `f` - The formatter to write the output to
-    ///
-    /// # Returns
-    /// * Result indicating whether the formatting operation succeeded
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.to_string_pretty())
     }
@@ -246,63 +186,169 @@ impl fmt::Display for GeminiRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::GeminiPart;
 
-    /// Tests the creation of a GeminiRequest with code content.
-    ///
-    /// This test verifies that:
-    /// - A model can be set correctly
-    /// - Content with a role can be added
-    /// - Text parts can be added to content
-    /// - Executable code parts can be added to content
-    /// - All parts are properly structured in the JSON output
     #[test]
-    fn test_gemini_request_code() {
-        let mut content = GeminiContent::new();
-        content
-            .set_role("user")
-            .add_text("Can you tell me the result of executing this code?")
-            .add_code("python", "print('Hello, world!')");
+    fn test_gemini_request_new() {
+        let request = GeminiRequest::new();
+        assert!(request.contents.is_empty());
+    }
 
+    #[test]
+    fn test_gemini_request_from_prompt() {
+        let request = GeminiRequest::from_prompt(GeminiRole::User, "Hello, Gemini!");
+        assert_eq!(request.contents.len(), 1);
+        assert_eq!(request.contents[0].role, Some("user".to_string()));
+
+        if let GeminiPart::Text(text_part) = &request.contents[0].parts[0] {
+            assert_eq!(text_part.text, "Hello, Gemini!");
+        } else {
+            panic!("Expected text part");
+        }
+    }
+
+    #[test]
+    fn test_gemini_request_from_str() {
+        let request = GeminiRequest::from_str("Simple text prompt");
+        assert_eq!(request.contents.len(), 1);
+
+        if let GeminiPart::Text(text_part) = &request.contents[0].parts[0] {
+            assert_eq!(text_part.text, "Simple text prompt");
+        } else {
+            panic!("Expected text part");
+        }
+    }
+
+    #[test]
+    fn test_gemini_request_add_content() {
+        let mut request = GeminiRequest::new();
+        let mut content1 = GeminiContent::new();
+        content1.set_role("user").add_text("First message");
+
+        let mut content2 = GeminiContent::new();
+        content2.set_role("system").add_text("Second message");
+
+        request.add_content(content1).add_content(content2);
+
+        assert_eq!(request.contents.len(), 2);
+        assert_eq!(request.contents[0].role, Some("user".to_string()));
+        assert_eq!(request.contents[1].role, Some("system".to_string()));
+    }
+
+    #[test]
+    fn test_gemini_request_add_prompt() {
         let mut request = GeminiRequest::new();
         request
-            .set_model("gpt-3.5-turbo")
-            .add_content(content.to_json());
+            .add_prompt(GeminiRole::System, "You are a helpful assistant")
+            .add_prompt(GeminiRole::User, "Tell me about Rust");
 
-        let output = request.to_string_pretty();
-        println!("GeminiRequest: {}", output);
+        assert_eq!(request.contents.len(), 2);
+        assert_eq!(request.contents[0].role, Some("system".to_string()));
+        assert_eq!(request.contents[1].role, Some("user".to_string()));
 
-        // Verify model is set correctly
-        assert_eq!(
-            request.as_json()["model"],
-            JsonValue::String("gpt-3.5-turbo".to_string())
-        );
+        if let GeminiPart::Text(text_part) = &request.contents[0].parts[0] {
+            assert_eq!(text_part.text, "You are a helpful assistant");
+        } else {
+            panic!("Expected text part");
+        }
 
-        // Verify contents array has one item
-        let contents = request.as_json()["contents"].as_array().unwrap();
+        if let GeminiPart::Text(text_part) = &request.contents[1].parts[0] {
+            assert_eq!(text_part.text, "Tell me about Rust");
+        } else {
+            panic!("Expected text part");
+        }
+    }
+
+    #[test]
+    fn test_gemini_request_to_json() {
+        let mut request = GeminiRequest::new();
+        let mut content = GeminiContent::new();
+        content.set_role("user").add_text("Convert this to JSON");
+        request.add_content(content);
+
+        let json = request.to_json();
+        assert!(json.is_object());
+
+        let contents = json
+            .as_object()
+            .unwrap()
+            .get("contents")
+            .unwrap()
+            .as_array()
+            .unwrap();
         assert_eq!(contents.len(), 1);
+    }
 
-        // Verify content properties
-        let content_obj = &contents[0];
-        assert_eq!(content_obj["role"], JsonValue::String("user".to_string()));
+    #[test]
+    fn test_gemini_request_to_string_pretty() {
+        let request = GeminiRequest::from_prompt(GeminiRole::User, "Hello");
+        let json_str = request.to_string_pretty();
 
-        // Verify parts array has two items
-        let parts = content_obj["parts"].as_array().unwrap();
-        assert_eq!(parts.len(), 2);
+        // Verify it's valid JSON
+        assert!(serde_json::from_str::<JsonValue>(&json_str).is_ok());
+        assert!(json_str.contains("contents"));
+        assert!(json_str.contains("Hello"));
+    }
 
-        // Verify text part
-        assert_eq!(
-            parts[0]["text"],
-            JsonValue::String("Can you tell me the result of executing this code?".to_string())
-        );
+    #[test]
+    fn test_gemini_request_display() {
+        let request = GeminiRequest::from_prompt(GeminiRole::User, "Test display");
+        let display_str = format!("{}", request);
 
-        // Verify code part
-        assert_eq!(
-            parts[1]["executable_code"]["language"],
-            JsonValue::String("python".to_string())
-        );
-        assert_eq!(
-            parts[1]["executable_code"]["code"],
-            JsonValue::String("print('Hello, world!')".to_string())
-        );
+        // Display should use to_string_pretty()
+        let pretty_str = request.to_string_pretty();
+        assert_eq!(display_str, pretty_str);
+    }
+
+    #[test]
+    fn test_gemini_role_as_str() {
+        assert_eq!(GeminiRole::System.as_str(), "system");
+        assert_eq!(GeminiRole::User.as_str(), "user");
+        assert_eq!(GeminiRole::Tool.as_str(), "tool");
+    }
+
+    #[test]
+    fn test_gemini_role_from_str() {
+        assert_eq!(GeminiRole::from_str("system"), Some(GeminiRole::System));
+        assert_eq!(GeminiRole::from_str("USER"), Some(GeminiRole::User));
+        assert_eq!(GeminiRole::from_str("Tool"), Some(GeminiRole::Tool));
+        assert_eq!(GeminiRole::from_str("unknown"), None);
+    }
+
+    #[test]
+    fn test_gemini_request_add_response() {
+        use crate::GeminiCandidate;
+
+        let mut request = GeminiRequest::new();
+        request.add_prompt(GeminiRole::User, "Initial prompt");
+
+        // Create a mock GeminiContent for the response
+        let mut response_content = GeminiContent::new();
+        response_content.set_role("model").add_text("Response text");
+
+        // Create a mock GeminiCandidate
+        let candidate = GeminiCandidate {
+            content: response_content,
+            finish_reason: None,
+            index: Some(0),
+        };
+
+        // Create the response with the candidate
+        let response = GeminiResponse {
+            candidates: vec![candidate],
+        };
+
+        // Test adding the response to the request
+        request.add_response(&response);
+
+        // Verify it was added correctly
+        assert_eq!(request.contents.len(), 2);
+        assert_eq!(request.contents[1].role, Some("model".to_string()));
+
+        if let GeminiPart::Text(text_part) = &request.contents[1].parts[0] {
+            assert_eq!(text_part.text, "Response text");
+        } else {
+            panic!("Expected text part");
+        }
     }
 }
