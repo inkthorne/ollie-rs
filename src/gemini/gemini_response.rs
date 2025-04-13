@@ -1,17 +1,19 @@
-use serde_json::Value as JsonValue;
+use crate::{GeminiCandidate, GeminiPart};
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 // ===
 // STRUCT: GeminiResponse
 // ===
 
-/// Represents a response from the Gemini AI model.
+/// Represents a response from the Gemini AI API.
 ///
-/// This struct wraps the JSON response from the Gemini API and provides
-/// convenient methods for accessing the response data.
-#[derive(Clone)]
+/// This struct encapsulates the response data received from the Gemini API,
+/// providing structured access to the generated content candidates.
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GeminiResponse {
-    response: JsonValue,
+    /// The generated candidates from the Gemini model.
+    pub candidates: Vec<GeminiCandidate>,
 }
 
 // ===
@@ -19,55 +21,41 @@ pub struct GeminiResponse {
 // ===
 
 impl GeminiResponse {
-    /// Creates a new GeminiResponse from a JSON value.
-    ///
-    /// # Arguments
-    /// * `response` - The JSON value representing the response from the Gemini API
-    ///
-    /// # Returns
-    /// * A new GeminiResponse instance wrapping the provided JSON
-    pub fn new(response: JsonValue) -> Self {
-        GeminiResponse { response }
-    }
-
-    /// Returns a reference to the underlying JSON value.
-    ///
-    /// # Returns
-    /// * A reference to the JsonValue representing the raw response
-    pub fn as_json(&self) -> &JsonValue {
-        &self.response
-    }
-
     /// Converts the response to a pretty-printed JSON string.
     ///
     /// # Returns
-    /// * A formatted JSON string representation of the response
+    /// * A formatted JSON string representation of the response,
+    ///   or an empty string if serialization fails
     pub fn to_string_pretty(&self) -> String {
-        serde_json::to_string_pretty(&self.response).unwrap_or_default()
+        serde_json::to_string_pretty(&self).unwrap_or_default()
     }
 
-    /// Extracts the primary text content from the response.
-    ///
-    /// This method navigates through the response structure to find
-    /// the first text content from the first candidate.
+    /// Returns a reference to the content of the first candidate in the response.
     ///
     /// # Returns
-    /// * Some(&str) containing the text if found, or None if not available
+    /// * `Some(&GeminiContent1)` if there is at least one candidate in the response
+    /// * `None` if there are no candidates
+    pub fn content(&self) -> Option<&crate::GeminiContent1> {
+        if let Some(candidate) = self.candidates.get(0) {
+            return Some(&candidate.content);
+        }
+
+        None
+    }
+
+    /// Extracts the text from the first part of the first candidate in the response.
+    ///
+    /// # Returns
+    /// * `Some(&str)` containing the text if there is at least one candidate with a text part
+    /// * `None` if there are no candidates or the first part isn't text
     pub fn text(&self) -> Option<&str> {
-        self.response
-            .pointer("/candidates/0/content/parts/0/text")?
-            .as_str()
-    }
+        if let Some(candidate) = self.candidates.get(0) {
+            if let GeminiPart::Text(text_part) = &candidate.content.parts[0] {
+                return Some(&text_part.text);
+            }
+        }
 
-    /// Extracts the content object from the first candidate in the response.
-    ///
-    /// This method navigates through the response structure to find
-    /// the content object from the first candidate.
-    ///
-    /// # Returns
-    /// * Some(&JsonValue) containing the content if found, or None if not available
-    pub fn content(&self) -> Option<&JsonValue> {
-        self.response.pointer("/candidates/0/content")
+        None
     }
 }
 

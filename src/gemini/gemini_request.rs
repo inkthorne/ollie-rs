@@ -175,7 +175,8 @@ impl GeminiRequest {
     /// * A mutable reference to self for method chaining
     pub fn add_response(&mut self, response: &GeminiResponse) -> &mut Self {
         if let Some(content) = response.content() {
-            self.add_content(content.clone());
+            let content_json = serde_json::to_value(content).unwrap_or_default();
+            self.add_content(content_json);
         }
         self
     }

@@ -71,7 +71,11 @@ impl Gemini {
         &self.base_url
     }
 
-    /// Sends a content generation request to the Gemini API and returns the response.
+    /// Sends a content generation request to the Gemini API and returns the raw response as a string.
+    ///
+    /// This method handles the low-level HTTP communication with the Gemini API and returns
+    /// the unprocessed response text. It's useful when you need access to the raw API response
+    /// or want to handle parsing yourself.
     ///
     /// # Arguments
     ///
@@ -79,19 +83,16 @@ impl Gemini {
     ///
     /// # Returns
     ///
-    /// * `Result<GeminiResponse, Box<dyn Error>>` - A GeminiResponse containing the API response if successful,
-    ///   or an error if the request failed.
+    /// * `Result<String, Box<dyn Error>>` - The raw response string if successful, or an error
+    ///   if the request failed.
     ///
     /// # Errors
     ///
     /// Returns an error if:
-    /// * The HTTP request fails
-    /// * The API response cannot be parsed as text
-    /// * The response text cannot be parsed as JSON
-    pub async fn generate(
-        &self,
-        request: &GeminiRequest,
-    ) -> Result<GeminiResponse, Box<dyn Error>> {
+    /// * The HTTP request fails (connection issues, timeout, etc.)
+    /// * The API returns a non-success status code
+    /// * There is an error reading the response body text
+    pub async fn generate_raw(&self, request: &GeminiRequest) -> Result<String, Box<dyn Error>> {
         // Construct the request URL.
         let url = format!(
             "{}/{}:generateContent?key={}",
@@ -114,14 +115,44 @@ impl Gemini {
         let response = response.unwrap();
         let text = response.text().await;
 
+        // If there's an error while reading the response text, return it.
         if let Err(err) = text {
             return Err(err.without_url().into());
         }
 
-        let text = text.unwrap();
-        // Parse the response text into a JSON value
-        let json_value: JsonValue = serde_json::from_str(&text)?;
-        let gemini_response = GeminiResponse::new(json_value);
+        // Return the string content of the response.
+        Ok(text.unwrap())
+    }
+
+    /// Sends a content generation request to the Gemini API and returns a structured response.
+    ///
+    /// This is the primary method for generating content with Gemini. It sends the request to the API,
+    /// processes the response, and returns a structured GeminiResponse object that provides convenient
+    /// access to the generated content and metadata.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - A GeminiRequest containing the request content for the Gemini API.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<GeminiResponse, Box<dyn Error>>` - A structured response object if successful,
+    ///   or an error if the request failed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// * The HTTP request fails (see `generate_raw` for details)
+    /// * The API returns a non-success status code
+    /// * The response JSON cannot be parsed into a GeminiResponse object
+    pub async fn generate(
+        &self,
+        request: &GeminiRequest,
+    ) -> Result<GeminiResponse, Box<dyn Error>> {
+        let response_string = self.generate_raw(request).await?;
+
+        // Deserialize the response string into a GeminiResponse1 object.
+        let gemini_response: GeminiResponse = serde_json::from_str(&response_string)?;
         Ok(gemini_response)
     }
 
@@ -254,7 +285,6 @@ impl Gemini {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::GeminiRequest;
     use std::env;
 
     fn api_key() -> String {

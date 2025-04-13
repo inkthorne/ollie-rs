@@ -1,6 +1,5 @@
 use crate::GeminiResponse;
 use reqwest::Response as HttpResponse;
-use serde_json::Value as JsonValue;
 
 /// A stream for processing Gemini API responses.
 ///
@@ -34,7 +33,7 @@ impl GeminiResponseStream {
     /// # Returns
     /// * `Some(GeminiResponse)` if a valid response chunk was received and parsed
     /// * `None` if the stream has ended or an error occurred during parsing
-    pub async fn read(&mut self) -> Option<GeminiResponse> {
+    pub async fn read(&mut self) -> Option<&GeminiResponse> {
         let bytes = self.http_response.chunk().await.ok()?;
 
         if bytes.is_none() {
@@ -44,13 +43,11 @@ impl GeminiResponseStream {
         let bytes = bytes.unwrap();
         let string = String::from_utf8(bytes.to_vec()).ok()?;
         let slice = string.split_once("data:")?.1;
-        let value: JsonValue = serde_json::from_str(&slice).ok()?;
-        let response = GeminiResponse::new(value);
+        let response: GeminiResponse = serde_json::from_str(slice).ok()?;
 
         // Save the response
-        self.responses.push(response.clone());
-
-        Some(response)
+        self.responses.push(response);
+        self.responses.last()
     }
 
     /// Returns a reference to the stored responses that have been collected from the stream.
