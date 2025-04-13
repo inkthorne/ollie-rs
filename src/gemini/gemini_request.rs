@@ -180,6 +180,40 @@ impl fmt::Display for GeminiRequest {
 }
 
 // ===
+// TRAIT: GeminiRequest (From<&str>)
+// ===
+
+impl From<&str> for GeminiRequest {
+    /// Creates a GeminiRequest from a string slice.
+    ///
+    /// # Arguments
+    /// * `s` - The text content to include in the request
+    ///
+    /// # Returns
+    /// * A new GeminiRequest containing the text
+    fn from(s: &str) -> Self {
+        Self::from_str(s)
+    }
+}
+
+// ===
+// TRAIT: GeminiRequest (From<String>)
+// ===
+
+impl From<String> for GeminiRequest {
+    /// Creates a GeminiRequest from a String.
+    ///
+    /// # Arguments
+    /// * `s` - The String content to include in the request
+    ///
+    /// # Returns
+    /// * A new GeminiRequest containing the text
+    fn from(s: String) -> Self {
+        Self::from_str(&s)
+    }
+}
+
+// ===
 // TESTS: GeminiRequest
 // ===
 
@@ -214,6 +248,49 @@ mod tests {
 
         if let GeminiPart::Text(text_part) = &request.contents[0].parts[0] {
             assert_eq!(text_part.text, "Simple text prompt");
+        } else {
+            panic!("Expected text part");
+        }
+    }
+
+    #[test]
+    fn test_gemini_request_from_trait() {
+        // Test the From<&str> trait implementation
+        let request: GeminiRequest = "Convert me to a request".into();
+        assert_eq!(request.contents.len(), 1);
+
+        if let GeminiPart::Text(text_part) = &request.contents[0].parts[0] {
+            assert_eq!(text_part.text, "Convert me to a request");
+        } else {
+            panic!("Expected text part");
+        }
+
+        // Test using From::from explicitly
+        let request = GeminiRequest::from("Another test");
+        assert_eq!(request.contents.len(), 1);
+
+        if let GeminiPart::Text(text_part) = &request.contents[0].parts[0] {
+            assert_eq!(text_part.text, "Another test");
+        } else {
+            panic!("Expected text part");
+        }
+
+        // Test the From<String> trait implementation
+        let request: GeminiRequest = "Convert me to a request".to_string().into();
+        assert_eq!(request.contents.len(), 1);
+
+        if let GeminiPart::Text(text_part) = &request.contents[0].parts[0] {
+            assert_eq!(text_part.text, "Convert me to a request");
+        } else {
+            panic!("Expected text part");
+        }
+
+        // Test using From::from explicitly with String
+        let request = GeminiRequest::from("Another test".to_string());
+        assert_eq!(request.contents.len(), 1);
+
+        if let GeminiPart::Text(text_part) = &request.contents[0].parts[0] {
+            assert_eq!(text_part.text, "Another test");
         } else {
             panic!("Expected text part");
         }

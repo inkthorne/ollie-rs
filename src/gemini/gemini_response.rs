@@ -1,5 +1,6 @@
 use crate::{GeminiContent, GeminiPart};
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 use std::fmt;
 
 // ===
@@ -86,5 +87,45 @@ impl fmt::Display for GeminiResponse {
     /// * Result indicating whether the formatting operation succeeded
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.to_string_pretty())
+    }
+}
+
+// ===
+// TRAIT: GeminiResponse (TryFrom<&str>)
+// ===
+
+impl TryFrom<&str> for GeminiResponse {
+    type Error = serde_json::Error;
+
+    /// Attempts to create a GeminiResponse from a JSON string.
+    ///
+    /// # Arguments
+    /// * `json_str` - A JSON string that can be deserialized into a GeminiResponse
+    ///
+    /// # Returns
+    /// * Result<GeminiResponse, serde_json::Error> - A GeminiResponse instance if parsing succeeds,
+    ///   or a serde_json::Error if the parsing fails
+    fn try_from(json_str: &str) -> Result<Self, Self::Error> {
+        serde_json::from_str(json_str)
+    }
+}
+
+// ===
+// TRAIT: GeminiResponse (TryFrom<JsonValue>)
+// ===
+
+impl TryFrom<JsonValue> for GeminiResponse {
+    type Error = serde_json::Error;
+
+    /// Attempts to create a GeminiResponse from a serde_json::Value.
+    ///
+    /// # Arguments
+    /// * `json_value` - A JSON value that can be converted into a GeminiResponse
+    ///
+    /// # Returns
+    /// * Result<GeminiResponse, serde_json::Error> - A GeminiResponse instance if conversion succeeds,
+    ///   or a serde_json::Error if the conversion fails
+    fn try_from(json_value: JsonValue) -> Result<Self, Self::Error> {
+        serde_json::from_value(json_value)
     }
 }

@@ -1,5 +1,4 @@
 use ollie_rs::Gemini;
-use ollie_rs::GeminiRequest;
 use std::env;
 
 #[tokio::main]
@@ -14,11 +13,11 @@ async fn main() {
     let gemini = Gemini::new(model, &api_key);
 
     // Create a request with a text prompt.
-    let request = GeminiRequest::from_str("Why is the sky blue?");
+    let request = "Why is the sky blue?".into();
 
     println!("Sending request to Gemini API...");
 
-    // Send the request and get the response.
+    // Create a GeminiRequest from a string and then get a reference to it
     let response = gemini.generate(&request).await.unwrap();
 
     // Extract and print just the text content from the response.
