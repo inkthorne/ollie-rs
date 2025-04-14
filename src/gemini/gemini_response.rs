@@ -27,7 +27,10 @@ pub struct GeminiCandidate {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GeminiResponse {
     /// The generated candidates from the Gemini model.
-    pub candidates: Vec<GeminiCandidate>,
+    pub candidates: Option<Vec<GeminiCandidate>>,
+
+    /// Information about the error that occurred, if any.
+    pub error: Option<JsonValue>,
 }
 
 // ===
@@ -50,8 +53,10 @@ impl GeminiResponse {
     /// * `Some(&GeminiContent1)` if there is at least one candidate in the response
     /// * `None` if there are no candidates
     pub fn content(&self) -> Option<&GeminiContent> {
-        if let Some(candidate) = self.candidates.get(0) {
-            return Some(&candidate.content);
+        if let Some(candidates) = &self.candidates {
+            if let Some(candidate) = candidates.get(0) {
+                return Some(&candidate.content);
+            }
         }
 
         None
@@ -63,9 +68,11 @@ impl GeminiResponse {
     /// * `Some(&str)` containing the text if there is at least one candidate with a text part
     /// * `None` if there are no candidates or the first part isn't text
     pub fn text(&self) -> Option<&str> {
-        if let Some(candidate) = self.candidates.get(0) {
-            if let GeminiPart::Text(text_part) = &candidate.content.parts[0] {
-                return Some(&text_part.text);
+        if let Some(candidates) = &self.candidates {
+            if let Some(candidate) = candidates.get(0) {
+                if let GeminiPart::Text(text_part) = &candidate.content.parts[0] {
+                    return Some(&text_part.text);
+                }
             }
         }
 

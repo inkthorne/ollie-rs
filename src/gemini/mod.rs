@@ -5,6 +5,9 @@ pub use gemini::*;
 pub mod gemini_content;
 pub use gemini_content::*;
 
+pub mod gemini_function;
+pub use gemini_function::*;
+
 pub mod gemini_part;
 pub use gemini_part::*;
 

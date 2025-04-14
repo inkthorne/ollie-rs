@@ -1,3 +1,4 @@
+use crate::GeminiToolDeclaration;
 use crate::gemini::GeminiPrompt;
 use crate::{GeminiContent, GeminiResponse};
 use serde::{Deserialize, Serialize};
@@ -13,7 +14,11 @@ use std::fmt;
 /// Contains a collection of content parts that make up the conversation or prompt.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GeminiRequest {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub contents: Vec<GeminiContent>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub tools: Vec<GeminiToolDeclaration>,
 }
 
 // ===
@@ -28,6 +33,7 @@ impl GeminiRequest {
     pub fn new() -> Self {
         Self {
             contents: Vec::new(),
+            tools: Vec::new(),
         }
     }
 
@@ -128,6 +134,11 @@ impl GeminiRequest {
         if let Some(content) = response.content() {
             self.add_content(content.clone());
         }
+        self
+    }
+
+    pub fn add_tool(&mut self, tool: GeminiToolDeclaration) -> &mut Self {
+        self.tools.push(tool);
         self
     }
 }
@@ -425,7 +436,8 @@ mod tests {
 
         // Create the response with the candidate
         let response = GeminiResponse {
-            candidates: vec![candidate],
+            candidates: Some(vec![candidate]),
+            error: None,
         };
 
         // Test adding the response to the request

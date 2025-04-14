@@ -46,8 +46,18 @@ pub struct GeminiPartText {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GeminiPartFunctionCall {
-    pub function_name: String,
-    pub arguments: JsonValue,
+    #[serde(rename = "functionCall")]
+    function_call: GeminiPartFunctionCallDetails,
+}
+
+// ===
+// STRUCT: GeminiPartFunctionCallDetails
+// ===
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GeminiPartFunctionCallDetails {
+    pub name: String,
+    pub args: JsonValue,
 }
 
 // ===
