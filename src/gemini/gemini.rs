@@ -125,6 +125,42 @@ impl Gemini {
         Ok(json_value)
     }
 
+    /// Sends a chat request to the Gemini API and returns the updated request with response.
+    ///
+    /// This method handles sending a request to the Gemini API and processing the response as a chat interaction.
+    /// It adds the received response to the request object to maintain conversation context.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - A GeminiRequest containing the chat content for the Gemini API.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<(GeminiRequest, GeminiResponse), Box<dyn Error>>` - A tuple containing the updated request
+    ///   (with response added to context) and the response object if successful, or an error if the request failed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// * The HTTP request fails (see `generate_json` for details)
+    /// * The API returns a non-success status code
+    /// * The response JSON cannot be parsed into a GeminiResponse object
+    pub async fn chat(
+        &self,
+        request: GeminiRequest,
+    ) -> Result<(GeminiRequest, GeminiResponse), Box<dyn Error>> {
+        // Send the 'generate' request to the LLM.
+        let response_json = self.generate_json(&request.to_json()).await?;
+        let response: GeminiResponse = serde_json::from_value(response_json)?;
+
+        // Add the response to the request for context.
+        let mut request = request;
+        request.add_response(&response);
+
+        // Return the (request, response) tuple.
+        Ok((request, response))
+    }
+
     /// Sends a content generation request to the Gemini API and returns a structured response.
     ///
     /// This is the primary method for generating content with Gemini. It sends the request to the API,

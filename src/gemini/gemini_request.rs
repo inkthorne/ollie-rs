@@ -1,52 +1,8 @@
+use crate::gemini::GeminiPrompt;
 use crate::{GeminiContent, GeminiResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::fmt;
-
-// ===
-// ENUM: GeminiRole
-// ===
-
-/// Represents the role of a content part in a Gemini API request.
-///
-/// The role defines who or what is responsible for a particular content part.
-/// Gemini supports system, user, and tool roles.
-#[derive(Debug, Clone, PartialEq)]
-pub enum GeminiRole {
-    System,
-    User,
-    Tool,
-}
-
-impl GeminiRole {
-    /// Converts the role to its string representation for the API.
-    ///
-    /// # Returns
-    /// * String representation of the role
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            GeminiRole::System => "system",
-            GeminiRole::User => "user",
-            GeminiRole::Tool => "tool",
-        }
-    }
-
-    /// Creates a GeminiRole from a string.
-    ///
-    /// # Arguments
-    /// * `role` - String representation of the role
-    ///
-    /// # Returns
-    /// * The corresponding GeminiRole, or None if the string doesn't match
-    pub fn from_str(role: &str) -> Option<Self> {
-        match role.to_lowercase().as_str() {
-            "system" => Some(GeminiRole::System),
-            "user" => Some(GeminiRole::User),
-            "tool" => Some(GeminiRole::Tool),
-            _ => None,
-        }
-    }
-}
 
 // ===
 // STRUCT: GeminiRequest
@@ -78,15 +34,18 @@ impl GeminiRequest {
     /// Creates a GeminiRequest from a prompt with a specified role.
     ///
     /// # Arguments
-    /// * `role` - The role of the content (system, user, or tool)
-    /// * `text` - The text content of the prompt
+    /// * `prompt` - The GeminiPrompt containing the role and text content
     ///
     /// # Returns
     /// * A new GeminiRequest containing the prompt
-    pub fn from_prompt(role: GeminiRole, text: &str) -> Self {
+    pub fn from_prompt(prompt: &GeminiPrompt) -> Self {
         let mut content = GeminiContent::new();
-        content.set_role(role.as_str());
-        content.add_text(text);
+
+        if let Some(role) = &prompt.role {
+            content.set_role(role.as_str());
+        }
+
+        content.add_text(prompt.text.as_str());
 
         let mut request = GeminiRequest::new();
         request.add_content(content);
@@ -141,14 +100,18 @@ impl GeminiRequest {
     /// Adds a prompt with a specified role to the request.
     ///
     /// # Arguments
-    /// * `role` - The role of the content (system, user, or tool)
-    /// * `text` - The text content of the prompt
+    /// * `prompt` - The GeminiPrompt containing the role and text content
     ///
     /// # Returns
     /// * &mut Self for method chaining
-    pub fn add_prompt(&mut self, role: GeminiRole, text: &str) -> &mut Self {
+    pub fn add_prompt(&mut self, prompt: &GeminiPrompt) -> &mut Self {
         let mut content = GeminiContent::new();
-        content.set_role(role.as_str()).add_text(text);
+
+        if let Some(role) = &prompt.role {
+            content.set_role(role.as_str());
+        }
+
+        content.add_text(prompt.text.as_str());
         self.add_content(content)
     }
 
@@ -173,7 +136,17 @@ impl GeminiRequest {
 // TRAIT: GeminiRequest (fmt::Display)
 // ===
 
+/// Implementation of Display trait for GeminiRequest
+///
+/// Formats the GeminiRequest as a pretty-printed JSON string
 impl fmt::Display for GeminiRequest {
+    /// Formats the GeminiRequest as a pretty-printed JSON string
+    ///
+    /// # Arguments
+    /// * `f` - The formatter to write to
+    ///
+    /// # Returns
+    /// * fmt::Result indicating whether the operation succeeded or failed
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.to_string_pretty())
     }
@@ -183,6 +156,9 @@ impl fmt::Display for GeminiRequest {
 // TRAIT: GeminiRequest (From<&str>)
 // ===
 
+/// Implementation of From<&str> trait for GeminiRequest
+///
+/// Allows conversion from a string slice to a GeminiRequest
 impl From<&str> for GeminiRequest {
     /// Creates a GeminiRequest from a string slice.
     ///
@@ -200,6 +176,9 @@ impl From<&str> for GeminiRequest {
 // TRAIT: GeminiRequest (From<String>)
 // ===
 
+/// Implementation of From<String> trait for GeminiRequest
+///
+/// Allows conversion from a String to a GeminiRequest
 impl From<String> for GeminiRequest {
     /// Creates a GeminiRequest from a String.
     ///
@@ -214,6 +193,35 @@ impl From<String> for GeminiRequest {
 }
 
 // ===
+// TRAIT: GeminiRequest (From<GeminiPrompt>)
+// ===
+
+/// Implementation of From<GeminiPrompt> trait for GeminiRequest
+///
+/// Allows conversion from a GeminiPrompt to a GeminiRequest
+impl From<GeminiPrompt> for GeminiRequest {
+    /// Creates a GeminiRequest from a GeminiPrompt.
+    ///
+    /// # Arguments
+    /// * `prompt` - The GeminiPrompt to convert to a request
+    ///
+    /// # Returns
+    /// * A new GeminiRequest containing the prompt content
+    fn from(prompt: GeminiPrompt) -> Self {
+        let mut request = GeminiRequest::new();
+        let mut content = GeminiContent::new();
+
+        if let Some(role) = &prompt.role {
+            content.set_role(role.as_str());
+        }
+
+        content.add_text(&prompt.text);
+        request.add_content(content);
+        request
+    }
+}
+
+// ===
 // TESTS: GeminiRequest
 // ===
 
@@ -221,6 +229,9 @@ impl From<String> for GeminiRequest {
 mod tests {
     use super::*;
     use crate::GeminiPart;
+    use crate::GeminiPromptSystem;
+    use crate::GeminiPromptUser;
+    use crate::GeminiRole;
 
     #[test]
     fn test_gemini_request_new() {
@@ -230,7 +241,8 @@ mod tests {
 
     #[test]
     fn test_gemini_request_from_prompt() {
-        let request = GeminiRequest::from_prompt(GeminiRole::User, "Hello, Gemini!");
+        let prompt = GeminiPromptUser::new("Hello, Gemini!");
+        let request = GeminiRequest::from_prompt(&prompt);
         assert_eq!(request.contents.len(), 1);
         assert_eq!(request.contents[0].role, Some("user".to_string()));
 
@@ -316,8 +328,8 @@ mod tests {
     fn test_gemini_request_add_prompt() {
         let mut request = GeminiRequest::new();
         request
-            .add_prompt(GeminiRole::System, "You are a helpful assistant")
-            .add_prompt(GeminiRole::User, "Tell me about Rust");
+            .add_prompt(&GeminiPromptSystem::new("You are a helpful assistant"))
+            .add_prompt(&GeminiPromptUser::new("Tell me about Rust"));
 
         assert_eq!(request.contents.len(), 2);
         assert_eq!(request.contents[0].role, Some("system".to_string()));
@@ -358,7 +370,7 @@ mod tests {
 
     #[test]
     fn test_gemini_request_to_string_pretty() {
-        let request = GeminiRequest::from_prompt(GeminiRole::User, "Hello");
+        let request = GeminiRequest::from_prompt(&GeminiPromptUser::new("Hello"));
         let json_str = request.to_string_pretty();
 
         // Verify it's valid JSON
@@ -369,7 +381,7 @@ mod tests {
 
     #[test]
     fn test_gemini_request_display() {
-        let request = GeminiRequest::from_prompt(GeminiRole::User, "Test display");
+        let request = GeminiRequest::from_prompt(&GeminiPromptUser::new("Test display"));
         let display_str = format!("{}", request);
 
         // Display should use to_string_pretty()
@@ -397,7 +409,8 @@ mod tests {
         use crate::GeminiCandidate;
 
         let mut request = GeminiRequest::new();
-        request.add_prompt(GeminiRole::User, "Initial prompt");
+        let prompt = GeminiPromptUser::new("Initial prompt");
+        request.add_prompt(&prompt);
 
         // Create a mock GeminiContent for the response
         let mut response_content = GeminiContent::new();
