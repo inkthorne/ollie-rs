@@ -1,5 +1,8 @@
+use crate::GeminiFunctionResponse;
+use crate::GeminiPart;
+use crate::GeminiPrompt;
+use crate::GeminiRole;
 use crate::GeminiToolDeclaration;
-use crate::gemini::GeminiPrompt;
 use crate::{GeminiContent, GeminiResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
@@ -48,7 +51,7 @@ impl GeminiRequest {
         let mut content = GeminiContent::new();
 
         if let Some(role) = &prompt.role {
-            content.set_role(role.as_str());
+            content.set_role(*role);
         }
 
         content.add_text(prompt.text.as_str());
@@ -103,6 +106,25 @@ impl GeminiRequest {
         self
     }
 
+    /// Adds a function response as a content part to the request.
+    ///
+    /// # Arguments
+    /// * `function_response` - The GeminiFunctionResponse to add as a tool content part
+    ///
+    /// # Returns
+    /// * &mut Self for method chaining
+    pub fn add_function_response(
+        &mut self,
+        function_response: GeminiFunctionResponse,
+    ) -> &mut Self {
+        let mut content = GeminiContent::new();
+        content.set_role(GeminiRole::Tool);
+        content.add_part(GeminiPart::FunctionResponse(function_response));
+
+        self.add_content(content);
+        self
+    }
+
     /// Adds a prompt with a specified role to the request.
     ///
     /// # Arguments
@@ -114,7 +136,7 @@ impl GeminiRequest {
         let mut content = GeminiContent::new();
 
         if let Some(role) = &prompt.role {
-            content.set_role(role.as_str());
+            content.set_role(*role);
         }
 
         content.add_text(prompt.text.as_str());
@@ -137,6 +159,13 @@ impl GeminiRequest {
         self
     }
 
+    /// Adds a tool declaration to the request.
+    ///
+    /// # Arguments
+    /// * `tool` - The GeminiToolDeclaration to add
+    ///
+    /// # Returns
+    /// * &mut Self for method chaining
     pub fn add_tool(&mut self, tool: GeminiToolDeclaration) -> &mut Self {
         self.tools.push(tool);
         self
@@ -223,7 +252,7 @@ impl From<GeminiPrompt> for GeminiRequest {
         let mut content = GeminiContent::new();
 
         if let Some(role) = &prompt.role {
-            content.set_role(role.as_str());
+            content.set_role(*role);
         }
 
         content.add_text(&prompt.text);
@@ -255,7 +284,7 @@ mod tests {
         let prompt = GeminiPromptUser::new("Hello, Gemini!");
         let request = GeminiRequest::from_prompt(&prompt);
         assert_eq!(request.contents.len(), 1);
-        assert_eq!(request.contents[0].role, Some("user".to_string()));
+        assert_eq!(request.contents[0].role(), Some(GeminiRole::User));
 
         if let GeminiPart::Text(text_part) = &request.contents[0].parts[0] {
             assert_eq!(text_part.text, "Hello, Gemini!");
@@ -323,16 +352,20 @@ mod tests {
     fn test_gemini_request_add_content() {
         let mut request = GeminiRequest::new();
         let mut content1 = GeminiContent::new();
-        content1.set_role("user").add_text("First message");
+        content1
+            .set_role(GeminiRole::User)
+            .add_text("First message");
 
         let mut content2 = GeminiContent::new();
-        content2.set_role("system").add_text("Second message");
+        content2
+            .set_role(GeminiRole::System)
+            .add_text("Second message");
 
         request.add_content(content1).add_content(content2);
 
         assert_eq!(request.contents.len(), 2);
-        assert_eq!(request.contents[0].role, Some("user".to_string()));
-        assert_eq!(request.contents[1].role, Some("system".to_string()));
+        assert_eq!(request.contents[0].role(), Some(GeminiRole::User));
+        assert_eq!(request.contents[1].role(), Some(GeminiRole::System));
     }
 
     #[test]
@@ -343,8 +376,8 @@ mod tests {
             .add_prompt(&GeminiPromptUser::new("Tell me about Rust"));
 
         assert_eq!(request.contents.len(), 2);
-        assert_eq!(request.contents[0].role, Some("system".to_string()));
-        assert_eq!(request.contents[1].role, Some("user".to_string()));
+        assert_eq!(request.contents[0].role(), Some(GeminiRole::System));
+        assert_eq!(request.contents[1].role(), Some(GeminiRole::User));
 
         if let GeminiPart::Text(text_part) = &request.contents[0].parts[0] {
             assert_eq!(text_part.text, "You are a helpful assistant");
@@ -363,7 +396,9 @@ mod tests {
     fn test_gemini_request_to_json() {
         let mut request = GeminiRequest::new();
         let mut content = GeminiContent::new();
-        content.set_role("user").add_text("Convert this to JSON");
+        content
+            .set_role(GeminiRole::User)
+            .add_text("Convert this to JSON");
         request.add_content(content);
 
         let json = request.to_json();
@@ -425,7 +460,9 @@ mod tests {
 
         // Create a mock GeminiContent for the response
         let mut response_content = GeminiContent::new();
-        response_content.set_role("model").add_text("Response text");
+        response_content
+            .set_role(GeminiRole::System)
+            .add_text("Response text");
 
         // Create a mock GeminiCandidate
         let candidate = GeminiCandidate {
@@ -445,7 +482,7 @@ mod tests {
 
         // Verify it was added correctly
         assert_eq!(request.contents.len(), 2);
-        assert_eq!(request.contents[1].role, Some("model".to_string()));
+        assert_eq!(request.contents[1].role(), Some(GeminiRole::System));
 
         if let GeminiPart::Text(text_part) = &request.contents[1].parts[0] {
             assert_eq!(text_part.text, "Response text");

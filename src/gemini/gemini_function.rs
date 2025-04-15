@@ -68,6 +68,7 @@ impl GeminiFunctionDeclaration {
 mod tests {
     use super::*;
     use crate::Gemini;
+    use crate::GeminiFunctionResponse;
     use crate::GeminiPromptUser;
     use crate::GeminiRequest;
     use schemars::JsonSchema;
@@ -152,8 +153,21 @@ mod tests {
         let gemini = Gemini::new(model, &api_key);
 
         // Send the request and get the response.
-        let response = gemini.generate(&request).await.unwrap();
+        let (mut request, response) = gemini.chat(request).await.unwrap();
+        // println!("response: {}", response);
 
-        println!("response: {}", response);
+        for function_call in response.functions() {
+            println!("function call name: {}", function_call.name());
+        }
+
+        let function_response = GeminiFunctionResponse::new(
+            "schedule_meeting",
+            JsonValue::String("Meeting scheduled successfully.".to_string()),
+        );
+
+        request.add_function_response(function_response);
+        let (_request, _response) = gemini.chat(request).await.unwrap();
+        // println!("request: {}", request);
+        println!("response: {}", _response);
     }
 }

@@ -1,4 +1,4 @@
-use crate::{GeminiContent, GeminiPart};
+use crate::{GeminiContent, GeminiFunctionCall, GeminiPart};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::fmt;
@@ -77,6 +77,32 @@ impl GeminiResponse {
         }
 
         None
+    }
+
+    /// Returns a vector of references to all function call parts in the first candidate's content.
+    ///
+    /// # Returns
+    /// * `Vec<&GeminiPartFunctionCall>` containing all function call parts in the first candidate,
+    ///   or an empty vector if there are no candidates or no function call parts.
+    pub fn functions(&self) -> Vec<&GeminiFunctionCall> {
+        if let Some(candidates) = &self.candidates {
+            if let Some(candidate) = candidates.get(0) {
+                return candidate
+                    .content
+                    .parts
+                    .iter()
+                    .filter_map(|part| {
+                        if let GeminiPart::FunctionCall(function_call) = part {
+                            Some(function_call)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+            }
+        }
+
+        Vec::new()
     }
 }
 

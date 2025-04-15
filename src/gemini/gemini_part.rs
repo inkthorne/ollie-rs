@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
+use serde_json::json;
 
 // ===
 // STRUCT: GeminiPartCodeExecutable
@@ -41,23 +42,72 @@ pub struct GeminiPartText {
 }
 
 // ===
-// STRUCT: GeminiPartFunctionCall
+// STRUCT: GeminiFunctionCall
 // ===
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct GeminiPartFunctionCall {
+pub struct GeminiFunctionCall {
     #[serde(rename = "functionCall")]
-    function_call: GeminiPartFunctionCallDetails,
+    function_call: GeminiFunctionCallDetails,
 }
 
 // ===
-// STRUCT: GeminiPartFunctionCallDetails
+// PUBLIC: GeminiFunctionCall
+// ===
+
+impl GeminiFunctionCall {
+    pub fn name(&self) -> &str {
+        &self.function_call.name
+    }
+
+    pub fn args(&self) -> &JsonValue {
+        &self.function_call.args
+    }
+}
+
+// ===
+// STRUCT: GeminiFunctionCallDetails
 // ===
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct GeminiPartFunctionCallDetails {
+pub struct GeminiFunctionCallDetails {
     pub name: String,
     pub args: JsonValue,
+}
+
+// ===
+// STRUCT: GeminiFunctionResponse
+// ===
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GeminiFunctionResponse {
+    // #[serde(rename = "functionResponse")]
+    pub function_response: GeminiFunctionResponseDetails,
+}
+
+impl GeminiFunctionResponse {
+    pub fn new(name: &str, result: JsonValue) -> Self {
+        let response = json!({
+            "result": result,
+        });
+
+        GeminiFunctionResponse {
+            function_response: GeminiFunctionResponseDetails {
+                name: name.to_string(),
+                response,
+            },
+        }
+    }
+}
+
+// ===
+// STRUCT: GeminiFunctionResponseDetails
+// ===
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GeminiFunctionResponseDetails {
+    pub name: String,
+    pub response: JsonValue,
 }
 
 // ===
@@ -76,7 +126,8 @@ pub struct GeminiPartUnknown {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum GeminiPart {
-    Text(GeminiPartText),
-    FunctionCall(GeminiPartFunctionCall),
     Code(GeminiPartCode),
+    FunctionCall(GeminiFunctionCall),
+    FunctionResponse(GeminiFunctionResponse),
+    Text(GeminiPartText),
 }

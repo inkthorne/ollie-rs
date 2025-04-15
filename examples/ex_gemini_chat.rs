@@ -20,12 +20,12 @@ async fn main() {
 
     // Create initial user prompt
     let initial_prompt = GeminiPromptUser::new("Why is the sky blue?");
-    let request = GeminiRequest::from_prompt(&initial_prompt);
+    let conversation = GeminiRequest::from_prompt(&initial_prompt);
 
     // Send request and get response
     // Note: The chat function returns both the updated request (with conversation history)
     // and the model's response
-    let (mut conversation, response) = gemini.chat(request).await.unwrap();
+    let (mut conversation, response) = gemini.chat(conversation).await.unwrap();
 
     // Display response
     if let Some(text) = response.text() {

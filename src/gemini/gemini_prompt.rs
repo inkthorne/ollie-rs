@@ -6,7 +6,7 @@
 ///
 /// The role defines who or what is responsible for a particular content part.
 /// Gemini supports system, user, and tool roles.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GeminiRole {
     System,
     User,
@@ -205,7 +205,7 @@ mod tests {
         let prompt = GeminiPrompt::new("Basic prompt");
         let request = GeminiRequest::from_prompt(&prompt);
         assert_eq!(request.contents.len(), 1);
-        assert_eq!(request.contents[0].role, None);
+        assert_eq!(request.contents[0].role(), None);
 
         if let GeminiPart::Text(part) = &request.contents[0].parts[0] {
             assert_eq!(part.text, "Basic prompt");
@@ -217,12 +217,12 @@ mod tests {
         let system_prompt = GeminiPromptSystem::new("System instructions");
         let request = GeminiRequest::from_prompt(&system_prompt);
         assert_eq!(request.contents.len(), 1);
-        assert_eq!(request.contents[0].role, Some("system".to_string()));
+        assert_eq!(request.contents[0].role(), Some(GeminiRole::System));
 
         // Test GeminiPrompt with User role
         let user_prompt = GeminiPromptUser::new("User question");
         let request = GeminiRequest::from_prompt(&user_prompt);
         assert_eq!(request.contents.len(), 1);
-        assert_eq!(request.contents[0].role, Some("user".to_string()));
+        assert_eq!(request.contents[0].role(), Some(GeminiRole::User));
     }
 }

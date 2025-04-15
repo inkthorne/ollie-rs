@@ -1,3 +1,4 @@
+use crate::gemini::GeminiRole;
 use crate::{GeminiPart, GeminiPartCode, GeminiPartText};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
@@ -15,7 +16,7 @@ pub struct GeminiContent {
     /// The role of the message sender (e.g., "user" or "model").
     /// When None, the role is determined by the API based on context.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub role: Option<String>,
+    role: Option<String>,
 
     /// The content parts that make up the message.
     /// Can include text, code, or other media types supported by the Gemini API.
@@ -72,15 +73,23 @@ impl GeminiContent {
         self
     }
 
+    /// Gets the role assigned to this content.
+    ///
+    /// # Returns
+    /// An `Option<GeminiRole>` containing the role if one is set and valid, or `None` otherwise.
+    pub fn role(&self) -> Option<GeminiRole> {
+        self.role.as_ref().and_then(|r| GeminiRole::from_str(r))
+    }
+
     /// Sets the role for this content.
     ///
     /// # Parameters
-    /// * `role` - The role to assign (e.g., "user" or "model")
+    /// * `role` - The GeminiRole to assign (e.g., GeminiRole::User)
     ///
     /// # Returns
     /// A mutable reference to self for method chaining
-    pub fn set_role(&mut self, role: &str) -> &mut Self {
-        self.role = Some(role.to_string());
+    pub fn set_role(&mut self, role: GeminiRole) -> &mut Self {
+        self.role = Some(role.as_str().to_string());
         self
     }
 
