@@ -1,5 +1,4 @@
 use crate::{GeminiRequest, GeminiResponse, GeminiResponseStream};
-use reqwest::Response as HttpResponse;
 use serde_json::Value as JsonValue;
 use std::error::Error;
 
@@ -275,46 +274,6 @@ impl Gemini {
         // Parse the response text into a JSON value
         let json_value: JsonValue = serde_json::from_str(&text)?;
         Ok(json_value)
-    }
-
-    /// Processes and extracts JSON data from a streaming HTTP response from the Gemini API.
-    ///
-    /// This method reads a chunk from the HTTP response stream, parses it according to the
-    /// server-sent events (SSE) format used by Gemini, and converts it to a JSON value.
-    /// It performs the following steps:
-    /// 1. Reads a chunk from the HTTP response
-    /// 2. Converts the bytes to a UTF-8 string
-    /// 3. Extracts the data after the "data:" prefix in the SSE format
-    /// 4. Parses the extracted data as JSON
-    ///
-    /// Note that this method silently handles errors by returning None in several cases:
-    /// - When chunk() returns an error
-    /// - When the chunk is None (end of stream)
-    /// - When UTF-8 conversion fails
-    /// - When "data:" prefix cannot be found
-    /// - When JSON parsing fails
-    ///
-    /// # Arguments
-    ///
-    /// * `response` - A mutable reference to an HTTP response that supports streaming.
-    ///
-    /// # Returns
-    ///
-    /// * `Option<JsonValue>` - A JSON value if a chunk was successfully read and parsed,
-    ///   or None if the stream has ended or an error occurred during parsing.
-    pub async fn read_stream(response: &mut HttpResponse) -> Option<JsonValue> {
-        let bytes = response.chunk().await.ok()?;
-
-        if bytes.is_none() {
-            return None;
-        }
-
-        let bytes = bytes.unwrap();
-        let string = String::from_utf8(bytes.to_vec()).ok()?;
-        let slice = string.split_once("data:")?.1;
-        let value: JsonValue = serde_json::from_str(&slice).ok()?;
-
-        return Some(value);
     }
 }
 
