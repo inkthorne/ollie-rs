@@ -58,6 +58,29 @@ impl GeminiFunctionDeclaration {
             parameters,
         }
     }
+
+    pub fn build() -> Self {
+        Self {
+            name: String::new(),
+            description: String::new(),
+            parameters: JsonValue::Null,
+        }
+    }
+
+    pub fn name(mut self, name: &str) -> Self {
+        self.name = name.to_string();
+        self
+    }
+
+    pub fn description(mut self, description: &str) -> Self {
+        self.description = description.to_string();
+        self
+    }
+
+    pub fn parameters(mut self, parameters: RootSchema) -> Self {
+        self.parameters = serde_json::to_value(parameters).unwrap();
+        self
+    }
 }
 
 // ===
@@ -169,5 +192,7 @@ mod tests {
         let (_request, _response) = gemini.chat(request).await.unwrap();
         // println!("request: {}", request);
         println!("response: {}", _response);
+
+        // try with streaming
     }
 }
