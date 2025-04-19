@@ -228,6 +228,13 @@ impl OllamaResponse {
 
         eval_count + prompt_eval_count
     }
+
+    pub fn print_stats(&self) {
+        println!("\n");
+        println!("->    eval rate: {:.1} tokens/second", self.eval_rate());
+        println!("-> elapsed time: {:.1} seconds", self.elapsed_time());
+        println!("->  tokens used: {}", self.tokens_used());
+    }
 }
 
 /// Implementation to convert a byte slice to an OllamaResponse

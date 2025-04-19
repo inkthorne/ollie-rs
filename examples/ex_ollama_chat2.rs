@@ -48,7 +48,5 @@ async fn main() {
     }
 
     let response = OllamaResponse::from_json(stream.response().clone());
-    println!("\n\n-> tokens used: {}", response.tokens_used());
-    println!("-> elapsed time (seconds): {:.1}", response.elapsed_time());
-    println!("-> tokens/second: {:.1}", response.eval_rate());
+    response.print_stats();
 }
