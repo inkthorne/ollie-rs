@@ -1,4 +1,5 @@
 use ollie_rs::OllamaMessageBuilder;
+use ollie_rs::OllamaOptionsBuilder;
 use ollie_rs::OllamaRequestBuilder;
 use ollie_rs::ollama::Ollama;
 use std::io::Write;
@@ -18,8 +19,12 @@ async fn main() {
         .content(question)
         .build();
 
+    let options = OllamaOptionsBuilder::new().num_gpu(48).build();
     let request = OllamaRequestBuilder::new()
         .model("granite3.3:8b")
+        // .model("gemma3:12b")
+        // .model("gemma3:4b")
+        .options(options)
         .message(control)
         .message(user)
         .build();
