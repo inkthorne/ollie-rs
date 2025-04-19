@@ -106,6 +106,31 @@ impl OllamaResponse {
         self.response.get("eval_count")?.as_u64()
     }
 
+    /// Gets the duration of the response generation in nanoseconds.
+    ///
+    /// ## Returns
+    ///
+    /// The eval_duration as a u64, or None if the field is not present.
+    pub fn eval_duration(&self) -> Option<u64> {
+        self.response.get("eval_duration")?.as_u64()
+    }
+
+    /// Calculates the evaluation rate in tokens per second.
+    ///
+    /// ## Returns
+    ///
+    /// The evaluation rate as an f64. Returns 0.0 if the elapsed time is zero.
+    pub fn eval_rate(&self) -> f64 {
+        let elapsed_time = self.elapsed_time();
+        let eval_count = self.eval_count().unwrap_or(0);
+
+        if elapsed_time > 0.0 {
+            return eval_count as f64 / elapsed_time;
+        }
+
+        0.0
+    }
+
     /// Checks if the response is done/completed
     ///
     /// ## Returns
@@ -177,6 +202,18 @@ impl OllamaResponse {
             self.response["message"] = serde_json::json!({});
         }
         self.response["message"]["content"] = content.into();
+    }
+
+    /// Calculates the elapsed time for the response generation in seconds.
+    ///
+    /// ## Returns
+    ///
+    /// The elapsed time in seconds as an f64. Returns 0.0 if the duration is not available.
+    pub fn elapsed_time(&self) -> f64 {
+        let nanoseconds = self.eval_duration().unwrap_or(0);
+        let milliseconds = nanoseconds / 1_000_000;
+        let seconds = milliseconds as f64 / 1000.0;
+        seconds
     }
 
     /// Calculates the total number of tokens used in the prompt and response
