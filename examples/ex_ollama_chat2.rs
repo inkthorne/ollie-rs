@@ -1,6 +1,6 @@
-use ollie_rs::OllamaMessageBuilder;
-use ollie_rs::OllamaOptionsBuilder;
-use ollie_rs::OllamaRequestBuilder;
+use ollie_rs::OllamaMessage2;
+use ollie_rs::OllamaOptions2;
+use ollie_rs::OllamaRequest2;
 use ollie_rs::OllamaResponse;
 use ollie_rs::ollama::Ollama;
 use std::io::Write;
@@ -10,30 +10,30 @@ async fn main() {
     let ollama = Ollama::default();
     let question = "Why is the sky blue?";
 
-    let control = OllamaMessageBuilder::new()
-        .role("control")
-        .content("thinking")
-        .build();
+    let control = OllamaMessage2::new()
+        .set_role("control")
+        .set_content("thinking")
+        .to_json();
 
-    let user = OllamaMessageBuilder::new()
-        .role("user")
-        .content(question)
-        .build();
+    let user = OllamaMessage2::new()
+        .set_role("user")
+        .set_content(question)
+        .to_json();
 
-    let options = OllamaOptionsBuilder::new()
-        .num_ctx(8192)
-        .num_gpu(48)
-        .build();
+    let options = OllamaOptions2::new()
+        .set_num_ctx(8192)
+        .set_num_gpu(48)
+        .to_json();
 
-    let request = OllamaRequestBuilder::new()
+    let request = OllamaRequest2::new()
         // .model("granite3.3:8b")
         // .model("gemma3:12b")
-        .model("gemma3:4b")
+        .set_model("gemma3:4b")
         // .model("gemma3:1b")
-        .options(options)
-        .message(control)
-        .message(user)
-        .build();
+        .set_options(options)
+        .add_message(control)
+        .add_message(user)
+        .to_json();
 
     println!("\n-> question: {question}\n");
 
