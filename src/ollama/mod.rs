@@ -25,6 +25,9 @@ pub use ollama_message::*;
 pub mod ollama_options;
 pub use ollama_options::*;
 
+pub mod ollama_response;
+pub use ollama_response::*;
+
 pub mod ollama_response_stream;
 pub use ollama_response_stream::*;
 

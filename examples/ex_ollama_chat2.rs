@@ -1,8 +1,4 @@
-use ollie_rs::OllamaMessage2;
-use ollie_rs::OllamaOptions2;
-use ollie_rs::OllamaRequest2;
-use ollie_rs::OllamaResponse;
-use ollie_rs::ollama::Ollama;
+use ollie_rs::{Ollama, OllamaMessage2, OllamaOptions2, OllamaRequest2, OllamaResponse2};
 use std::io::Write;
 
 #[tokio::main]
@@ -28,8 +24,8 @@ async fn main() {
     let request = OllamaRequest2::new()
         // .model("granite3.3:8b")
         // .model("gemma3:12b")
-        .set_model("gemma3:4b")
-        // .model("gemma3:1b")
+        // .set_model("gemma3:4b")
+        .set_model("gemma3:1b")
         .set_options(options)
         .add_message(control)
         .add_message(user)
@@ -37,9 +33,10 @@ async fn main() {
 
     println!("\n-> question: {question}\n");
 
-    // Send the chat request and handle the response
+    // Send the chat request.
     let mut stream = ollama.chat_json(&request).await.unwrap();
 
+    // Handle the streamed responses as they arrive.
     while let Some(response) = stream.read().await {
         response["message"]["content"].as_str().map(|content| {
             print!("{}", content);
@@ -47,6 +44,7 @@ async fn main() {
         });
     }
 
-    let response = OllamaResponse::from_json(stream.response().clone());
+    // Print the response statistics.
+    let response = OllamaResponse2::from_json(stream.response().clone()).unwrap();
     response.print_stats();
 }
