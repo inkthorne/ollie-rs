@@ -4,10 +4,10 @@ use std::io::{self, Write};
 #[tokio::main]
 async fn main() {
     // Create a new OllamaSession instance with the model to use
-    let mut session = OllamaSession::local("gemma3:4b");
+    let mut session = OllamaSession::local("gemma3:1b");
 
     // First, add the user message to the conversation
-    let prompt = "Why is the sky blue?";
+    let prompt = "Are swans always white?";
     println!("\n *** ASKING: {}\n", prompt);
     session.user(prompt);
 

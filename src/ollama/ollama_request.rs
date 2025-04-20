@@ -365,4 +365,93 @@ mod tests {
         let result_invalid_message = OllamaRequest2::from_json(json_data_invalid_message);
         assert!(result_invalid_message.is_err());
     }
+
+    #[test]
+    fn test_prompt_setter_getter() {
+        let req = OllamaRequest2::new().set_prompt("This is a test prompt.");
+        assert_eq!(req.prompt(), Some(&"This is a test prompt.".to_string()));
+
+        let req_none = OllamaRequest2::new();
+        assert!(req_none.prompt().is_none());
+    }
+
+    #[test]
+    fn test_add_response() {
+        let response_with_message = json!({
+            "model": "llama2",
+            "created_at": "2023-08-04T08:52:19.385406455Z",
+            "message": {
+                "role": "assistant",
+                "content": "Response message content"
+            },
+            "done": true
+        });
+        let response_without_message = json!({
+            "model": "llama2",
+            "created_at": "2023-08-04T08:52:19.385406455Z",
+            "done": true
+        });
+        let expected_message = json!({
+            "role": "assistant",
+            "content": "Response message content"
+        });
+
+        // Test adding response when messages is None
+        let req1 = OllamaRequest2::new();
+        let req1_updated = req1.add_response(response_with_message.clone());
+        assert!(req1_updated.messages().is_some());
+        assert_eq!(req1_updated.messages().unwrap().len(), 1);
+        assert_eq!(req1_updated.messages().unwrap()[0], expected_message);
+
+        // Test adding response when messages already exists
+        let initial_message = json!({"role": "user", "content": "Initial prompt"});
+        let req2 = OllamaRequest2::new().add_message(initial_message.clone());
+        let req2_updated = req2.add_response(response_with_message.clone());
+        assert!(req2_updated.messages().is_some());
+        assert_eq!(req2_updated.messages().unwrap().len(), 2);
+        assert_eq!(req2_updated.messages().unwrap()[0], initial_message);
+        assert_eq!(req2_updated.messages().unwrap()[1], expected_message);
+
+        // Test adding response without a message field
+        let req3 = OllamaRequest2::new();
+        let req3_updated = req3.add_response(response_without_message.clone());
+        assert!(req3_updated.messages().is_none()); // Should remain None
+
+        let req4 = OllamaRequest2::new().add_message(initial_message.clone());
+        let req4_updated = req4.add_response(response_without_message);
+        assert!(req4_updated.messages().is_some());
+        assert_eq!(req4_updated.messages().unwrap().len(), 1); // Should remain unchanged
+        assert_eq!(req4_updated.messages().unwrap()[0], initial_message);
+    }
+
+    #[test]
+    fn test_to_json_with_prompt() {
+        let req = OllamaRequest2::new()
+            .set_model("test-model")
+            .set_prompt("Test prompt");
+
+        let expected_json = json!({
+            "model": "test-model",
+            "prompt": "Test prompt"
+        });
+        // Clone req before calling to_json which consumes self
+        let req_clone = req.clone();
+        assert_eq!(req_clone.to_json(), expected_json);
+    }
+
+    #[test]
+    fn test_from_json_with_prompt() {
+        let json_data = json!({
+            "model": "test-model",
+            "prompt": "Another test prompt"
+        });
+
+        let req = OllamaRequest2::from_json(json_data).unwrap();
+
+        assert_eq!(req.model(), Some(&"test-model".to_string()));
+        assert_eq!(req.prompt(), Some(&"Another test prompt".to_string()));
+        assert!(req.messages().is_none());
+        assert!(req.options().is_none());
+        assert!(req.stream().is_none());
+    }
 }
