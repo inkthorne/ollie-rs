@@ -80,6 +80,27 @@ impl OllamaResponse2 {
         );
     }
 
+    /// Returns the generated text from the model response.
+    ///
+    /// This method first checks for content in the message field, and if not found,
+    /// falls back to the response field. Returns `None` if neither is available.
+    pub fn text(&self) -> Option<&str> {
+        // Look for the text in the message content first.
+        if let Some(message) = self.message() {
+            if message.content().is_some() {
+                return message.content();
+            }
+        }
+
+        // If not found, look for the text in the response field.
+        if self.response().is_some() {
+            return self.response();
+        }
+
+        // If neither is found, return None.
+        None
+    }
+
     pub fn tokens_used(&self) -> u32 {
         self.eval_count.unwrap_or(0) + self.prompt_eval_count.unwrap_or(0)
     }

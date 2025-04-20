@@ -41,11 +41,9 @@ async fn main() {
             }
 
             // Print the contents of each response as it arrives.
-            if let Some(message) = response.message() {
-                if let Some(content) = message.content() {
-                    print!("{}", content);
-                    std::io::stdout().flush().unwrap();
-                }
+            if let Some(text) = response.text() {
+                print!("{}", text);
+                std::io::stdout().flush().unwrap();
             }
         })
         .await;
@@ -84,11 +82,9 @@ async fn main() {
             }
 
             // Print the contents of each response as it arrives.
-            if let Some(message) = response.message() {
-                if let Some(content) = message.content() {
-                    print!("{}", content);
-                    std::io::stdout().flush().unwrap();
-                }
+            if let Some(text) = response.text() {
+                print!("{}", text);
+                std::io::stdout().flush().unwrap();
             }
         })
         .await;
