@@ -177,10 +177,10 @@ impl Ollama {
     pub async fn chat3<F>(
         &self,
         request: &OllamaRequest2,
-        callback: F,
+        mut callback: F,
     ) -> Result<OllamaResponse2, Box<dyn Error>>
     where
-        F: Fn(&OllamaResponse2),
+        F: FnMut(&OllamaResponse2),
     {
         // Send a POST request to the Ollama server with the JSON payload.
         let url = format!("http://{}/api/chat", self.server_addr);
@@ -335,7 +335,9 @@ impl Ollama {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{OllamaFunction, OllamaFunctionParameters, OllamaMessage, OllamaTools};
+    use crate::{
+        OllamaFunction, OllamaFunctionParameters, OllamaMessage, OllamaMessage2, OllamaTools,
+    };
 
     /// Tests basic text generation functionality with the Ollama API
     ///
@@ -383,22 +385,23 @@ mod tests {
     #[tokio::test]
     async fn test_chat_request1() {
         let ollama = Ollama::default();
-        let mut message = OllamaMessage::new();
-        message
+        let message = OllamaMessage2::new()
             .set_role("user")
-            .set_content("can you explain briefly, why is the sky blue?");
+            .set_content("can you explain briefly, why is the sky blue?")
+            .to_json();
 
-        let mut request = OllamaRequest::new();
-        request
+        let request = OllamaRequest2::new()
             .set_model("gemma3:1b")
-            .set_stream(true)
-            .add_message(&message);
+            .add_message(message);
 
         let mut accumulated_content = String::new();
         let result = ollama
-            .chat(&request, |response| {
-                response.content().map(|c| accumulated_content.push_str(c));
-                // println!("response: {}", response.to_string_pretty());
+            .chat3(&request, |response| {
+                // Append response content to accumulated content
+                if let Some(text) = response.text() {
+                    accumulated_content.push_str(text);
+                }
+                // println!("response: {}", response.as_string_pretty());
             })
             .await;
 
