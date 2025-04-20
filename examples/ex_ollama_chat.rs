@@ -1,4 +1,4 @@
-use ollie_rs::{Ollama, OllamaMessage2, OllamaOptions2, OllamaRequest2, OllamaResponse2};
+use ollie_rs::{Ollama, OllamaMessage2, OllamaOptions2, OllamaRequest2};
 use std::io::Write;
 
 #[tokio::main]
@@ -21,43 +21,44 @@ async fn main() {
         .set_num_gpu(48)
         .to_json();
 
-    let request = OllamaRequest2::new()
+    let mut request = OllamaRequest2::new()
         // .model("granite3.3:8b")
         // .model("gemma3:12b")
         // .set_model("gemma3:4b")
         .set_model("gemma3:1b")
         .set_options(options)
         .add_message(control)
-        .add_message(user)
-        .to_json();
+        .add_message(user);
 
     println!("\n-> question: {question}\n");
 
     // Send the chat request.
-    let mut stream = ollama.chat2(&request).await.unwrap();
-
-    // Handle the streamed responses as they arrive.
-    while let Some(response_json) = stream.read().await {
-        let response = OllamaResponse2::from_json(response_json).unwrap();
-
-        // Print the error message, if any.
-        if let Some(err) = response.error() {
-            eprintln!("-> error: {}", err);
-        }
-
-        // Print the message of each response as it arrives.
-        if let Some(message) = response.message() {
-            if let Some(content) = message.content() {
-                print!("{}", content);
-                std::io::stdout().flush().unwrap();
+    let result = ollama
+        .chat3(&request, |response| {
+            // Print the error message, if any.
+            if let Some(err) = response.error() {
+                eprintln!("-> error: {}", err);
             }
-        }
+
+            // Print the contents of each response as it arrives.
+            if let Some(message) = response.message() {
+                if let Some(content) = message.content() {
+                    print!("{}", content);
+                    std::io::stdout().flush().unwrap();
+                }
+            }
+        })
+        .await;
+
+    // If an error occured, print it and abort.
+    if result.is_err() {
+        eprintln!("-> error: {}", result.err().unwrap());
+        return;
     }
 
     // Print the response statistics.
-    if let Ok(response) = OllamaResponse2::from_json(stream.response()) {
-        response.print_stats();
-    }
+    let response = result.unwrap();
+    response.print_stats();
 
     // Ask a follow-up question based on the previous response.
     let question = "Can you summarize your previous answer in 2 sentences?";
@@ -66,37 +67,39 @@ async fn main() {
         .set_content(question)
         .to_json();
 
-    // Reuse the previous request and add the response and the new user message.
-    let request = OllamaRequest2::from_json(request)
-        .unwrap()
-        .add_response(stream.response())
+    // Add the response and the new user message to the previous request.
+    request = request
+        .add_response(response.to_json())
         .add_message(user)
-        .set_stream(false)
-        .to_json();
+        .set_stream(false);
 
     println!("\n-> question: {question}\n");
 
     // Send the 2nd chat request.
-    let mut stream = ollama.chat2(&request).await.unwrap();
-
-    // Handle the non-streamed response.
-    if let Some(response_json) = stream.read().await {
-        let response = OllamaResponse2::from_json(response_json).unwrap();
-
-        // Print the error message, if any.
-        if let Some(err) = response.error() {
-            eprintln!("-> error: {}", err);
-        }
-
-        // Print the message of each response as it arrives.
-        if let Some(message) = response.message() {
-            if let Some(content) = message.content() {
-                print!("{}", content);
-                std::io::stdout().flush().unwrap();
+    let result = ollama
+        .chat3(&request, |response| {
+            // Print the error message, if any.
+            if let Some(err) = response.error() {
+                eprintln!("-> error: {}", err);
             }
-        }
 
-        // Print the response statistics.
-        response.print_stats();
+            // Print the contents of each response as it arrives.
+            if let Some(message) = response.message() {
+                if let Some(content) = message.content() {
+                    print!("{}", content);
+                    std::io::stdout().flush().unwrap();
+                }
+            }
+        })
+        .await;
+
+    // If an error occured, print it and abort.
+    if result.is_err() {
+        eprintln!("-> error: {}", result.err().unwrap());
+        return;
     }
+
+    // Print the response statistics.
+    let response = result.unwrap();
+    response.print_stats();
 }

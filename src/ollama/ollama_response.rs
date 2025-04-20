@@ -79,6 +79,10 @@ impl OllamaResponse2 {
             serde_json::to_string_pretty(&stats).unwrap()
         );
     }
+
+    pub fn tokens_used(&self) -> u32 {
+        self.eval_count.unwrap_or(0) + self.prompt_eval_count.unwrap_or(0)
+    }
 }
 
 // ===

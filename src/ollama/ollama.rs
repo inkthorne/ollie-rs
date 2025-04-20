@@ -1,9 +1,12 @@
 use crate::OllamaResponseStream;
-use crate::{OllamaRequest, OllamaResponse};
+use crate::{OllamaRequest, OllamaRequest2, OllamaResponse};
 use serde::Deserialize;
 use serde_json::Value as JsonValue;
+use std::error::Error;
 use std::net::SocketAddr;
 use std::str::FromStr;
+
+use super::OllamaResponse2;
 
 /// Represents a chunk of response from the Ollama streaming API.
 ///
@@ -140,6 +143,62 @@ impl Ollama {
     pub async fn chat2(&self, request: &JsonValue) -> Result<OllamaResponseStream, reqwest::Error> {
         let url = format!("http://{}/api/chat", self.server_addr);
         self.request2(url.as_str(), request).await
+    }
+
+    /// Sends a chat request using an OllamaRequest2 object and processes response chunks with a callback.
+    ///
+    /// This method sends a chat request to the Ollama server and processes each response chunk
+    /// through the provided callback function. Unlike `chat2`, this method handles the chunked
+    /// responses internally and returns the final response.
+    ///
+    /// ## Arguments
+    ///
+    /// * `request` - An `OllamaRequest2` object containing the model, messages, and other chat parameters.
+    /// * `callback` - A function that will be called with each response chunk as it arrives.
+    ///
+    /// ## Returns
+    ///
+    /// * `Ok(OllamaResponse2)` - The final response if successful.
+    /// * `Err(Box<dyn Error>)` - Any error that occurred during the request or processing.
+    ///
+    /// ## Example
+    ///
+    /// ```no_run
+    /// # use ollie_rs::{Ollama, OllamaRequest2};
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let ollama = Ollama::default();
+    /// let request = OllamaRequest2::new().model("llama3").message("user", "Hello");
+    /// let response = ollama.chat3(&request, |chunk| {
+    ///     println!("Received chunk: {:?}", chunk);
+    /// }).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn chat3<F>(
+        &self,
+        request: &OllamaRequest2,
+        callback: F,
+    ) -> Result<OllamaResponse2, Box<dyn Error>>
+    where
+        F: Fn(&OllamaResponse2),
+    {
+        // Send a POST request to the Ollama server with the JSON payload.
+        let url = format!("http://{}/api/chat", self.server_addr);
+        let mut http_response = self.http_client.post(url).json(request).send().await?;
+        let mut response = None;
+
+        while let Some(chunk_bytes) = http_response.chunk().await? {
+            // Deserialize the chunk into a OllamaRequest object.
+            let chunk_string = String::from_utf8_lossy(&chunk_bytes);
+            let chunk_json = serde_json::from_str(&chunk_string)?;
+            let chunk_response = OllamaResponse2::from_json(chunk_json)?;
+
+            // Forward the response to the callback.
+            callback(&chunk_response);
+            response = Some(chunk_response);
+        }
+
+        Ok(response.unwrap())
     }
 
     /// Sends an HTTP POST request with a JSON payload and returns a response stream.

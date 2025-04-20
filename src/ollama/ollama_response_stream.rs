@@ -1,4 +1,5 @@
 use serde_json::Value as JsonValue;
+use std::error::Error;
 
 pub struct OllamaResponseStream {
     http_response: reqwest::Response,
@@ -38,6 +39,26 @@ impl OllamaResponseStream {
         }
 
         None
+    }
+
+    pub async fn read2<F>(&mut self, callback: F) -> Result<(), Box<dyn Error>>
+    where
+        F: Fn(&JsonValue),
+    {
+        while let Some(chunk_bytes) = self.http_response.chunk().await? {
+            let chunk_str = String::from_utf8_lossy(&chunk_bytes);
+            let chunk_json: JsonValue = serde_json::from_str(&chunk_str)?;
+
+            if self.save_responses {
+                callback(&chunk_json);
+                self.llm_responses.push(chunk_json);
+            } else {
+                callback(&chunk_json);
+                self.llm_response = chunk_json;
+            }
+        }
+
+        Ok(())
     }
 
     pub fn response(&self) -> JsonValue {

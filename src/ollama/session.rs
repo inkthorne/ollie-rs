@@ -1,16 +1,19 @@
-use crate::{Ollama, OllamaMessage, OllamaOptions, OllamaRequest, OllamaResponse};
+use crate::{
+    Ollama, OllamaMessage2, OllamaOptions2, OllamaRequest2, OllamaResponse, OllamaResponse2,
+};
 
-//============================================================================
-// OllamaSession
-//============================================================================
+// ===
+// STRUCT: OllamaSession
+// ===
+
 /// A session for interacting with Ollama chat models.
 ///
 /// This struct manages the state of a conversation with an Ollama model,
 /// keeping track of the message history for context in future exchanges.
 pub struct OllamaSession {
     ollama: Ollama,
-    request: OllamaRequest,
-    options: OllamaOptions,
+    request: OllamaRequest2,
+    options: OllamaOptions2,
 }
 
 impl OllamaSession {
@@ -46,15 +49,13 @@ impl OllamaSession {
     ///
     /// A new `OllamaSession` instance configured to use the specified model with the local server.
     pub fn local(model: &str) -> Self {
-        let mut request = OllamaRequest::new();
-        request.set_model(model);
-
+        let request = OllamaRequest2::new().set_model(model);
         let ollama = Ollama::default();
 
         OllamaSession {
             ollama,
             request,
-            options: OllamaOptions::new(),
+            options: OllamaOptions2::new(),
         }
     }
 
@@ -70,13 +71,12 @@ impl OllamaSession {
     /// A new `OllamaChat` instance configured to use the specified model.
     pub fn remote(model: &str, server_address: &str) -> Self {
         let ollama = Ollama::new(server_address);
-        let mut request = OllamaRequest::new();
-        request.set_model(model);
+        let request = OllamaRequest2::new().set_model(model);
 
         OllamaSession {
             ollama,
             request,
-            options: OllamaOptions::new(),
+            options: OllamaOptions2::new(),
         }
     }
 
@@ -89,9 +89,11 @@ impl OllamaSession {
     ///
     /// * `content` - The content of the assistant message.
     pub fn assistant(&mut self, content: &str) {
-        let mut message = OllamaMessage::new();
-        message.set_role("assistant").set_content(content);
-        self.request.add_message(&message);
+        let message = OllamaMessage2::new()
+            .set_role("assistant")
+            .set_content(content)
+            .to_json();
+        self.request = self.request.clone().add_message(message);
     }
 
     /// Gets the context window size for the model.
@@ -107,15 +109,15 @@ impl OllamaSession {
     }
 
     pub fn set_context_window_size(&mut self, num_ctx: u32) {
-        self.options.set_num_ctx(num_ctx);
+        self.options = self.options.clone().set_num_ctx(num_ctx);
     }
 
     /// Gets a mutable reference to the options for configuring model behavior.
     ///
     /// # Returns
     ///
-    /// A mutable reference to the `OllamaOptions` instance.
-    pub fn options(&mut self) -> &mut OllamaOptions {
+    /// A mutable reference to the `OllamaOptions2` instance.
+    pub fn options(&mut self) -> &mut OllamaOptions2 {
         &mut self.options
     }
 
@@ -128,9 +130,12 @@ impl OllamaSession {
     ///
     /// * `content` - The content of the user message.
     pub fn user(&mut self, content: &str) {
-        let mut message = OllamaMessage::new();
-        message.set_role("user").set_content(content);
-        self.request.add_message(&message);
+        let message = OllamaMessage2::new()
+            .set_role("user")
+            .set_content(content)
+            .to_json();
+
+        self.request = self.request.clone().add_message(message);
     }
 
     /// Adds a system message to the conversation.
@@ -142,9 +147,12 @@ impl OllamaSession {
     ///
     /// * `content` - The content of the system message.
     pub fn system(&mut self, content: &str) {
-        let mut message = OllamaMessage::new();
-        message.set_role("system").set_content(content);
-        self.request.add_message(&message);
+        let message = OllamaMessage2::new()
+            .set_role("system")
+            .set_content(content)
+            .to_json();
+
+        self.request = self.request.clone().add_message(message);
     }
 
     /// Sends a prompt to the model and processes the response.
@@ -162,46 +170,39 @@ impl OllamaSession {
     ///
     /// * `Ok(())` - If the prompt was processed successfully.
     /// * `Err(String)` - If an error occurred, containing the error message.
-    pub async fn update<F>(&mut self, mut callback: F) -> Result<Option<OllamaResponse>, String>
+    pub async fn update<F>(&mut self, mut callback: F) -> Result<Option<OllamaResponse2>, String>
     where
         F: FnMut(&str),
     {
         // Apply options to the request
-        self.request.set_options(&self.options);
+        self.request = self
+            .request
+            .clone()
+            .set_options(self.options.clone().to_json());
 
-        // Accumulate all the content from responses
-        let mut accumulated_content = String::new();
+        self.request = self.request.clone().set_stream(true);
 
-        match self
-            .ollama
-            .chat(&self.request, |response| {
-                response.error().map(|err| {
-                    // If there's an error, call the callback with the error message
-                    // TODO: handle this more explicitly, this can break the flow in `example_converation.rs`
-                    callback(err);
-                });
+        let request = self.request.clone().to_json();
 
-                // Extract the response content and pass it to the callback if available
-                if let Some(content) = response.content() {
-                    callback(content);
-                    // Accumulate the content
-                    accumulated_content.push_str(content);
+        match self.ollama.chat2(&request).await {
+            Ok(mut stream) => {
+                stream.save_responses(true);
+
+                while let Some(response_json) = stream.read().await {
+                    let response = OllamaResponse::from_json(response_json);
+
+                    // Extract the response content and pass it to the callback if available
+                    if let Some(message) = response.message() {
+                        if let Some(content) = message.content() {
+                            callback(content);
+                        }
+                    }
                 }
-            })
-            .await
-        {
-            Ok(response) => {
-                // Create an assistant message with the accumulated content
-                let mut assistant_message = OllamaMessage::new();
-                assistant_message
-                    .set_role("assistant")
-                    .set_content(&accumulated_content);
 
-                // Add the assistant message to the request for context in future exchanges
-                self.request.add_message(&assistant_message);
-
+                let response = OllamaResponse2::from_json(stream.response()).ok();
                 Ok(response)
             }
+
             Err(e) => Err(e.to_string()),
         }
     }

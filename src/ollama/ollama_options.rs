@@ -4,7 +4,7 @@ use serde_json::Value as JsonValue;
 #[derive(Serialize, Deserialize, Clone)]
 pub struct OllamaOptions2 {
     #[serde(skip_serializing_if = "Option::is_none")]
-    num_ctx: Option<i32>,
+    num_ctx: Option<u32>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     num_gpu: Option<i32>,
@@ -98,8 +98,8 @@ impl OllamaOptions2 {
     ///
     /// # Returns
     ///
-    /// An `Option<i32>` containing the number of context tokens if set, otherwise `None`.
-    pub fn num_ctx(&self) -> Option<i32> {
+    /// An `Option<u32>` containing the number of context tokens if set, otherwise `None`.
+    pub fn num_ctx(&self) -> Option<u32> {
         self.num_ctx
     }
 
@@ -121,7 +121,7 @@ impl OllamaOptions2 {
     /// let options = OllamaOptions2::new().set_num_ctx(2048);
     /// assert_eq!(options.num_ctx(), Some(2048));
     /// ```
-    pub fn set_num_ctx(mut self, num_ctx: i32) -> Self {
+    pub fn set_num_ctx(mut self, num_ctx: u32) -> Self {
         self.num_ctx = Some(num_ctx);
         self
     }
@@ -277,7 +277,7 @@ mod tests {
     #[test]
     fn test_from_json_invalid_type() {
         let json_data = json!({
-            "num_ctx": "invalid", // String instead of i32
+            "num_ctx": "invalid", // String instead of u32
             "temperature": 0.8
         });
         let options_result = OllamaOptions2::from_json(json_data);
@@ -309,7 +309,7 @@ mod tests {
         let json_val = options.to_json();
 
         // Extract values to compare individually
-        let json_num_ctx = json_val["num_ctx"].as_i64().unwrap() as i32;
+        let json_num_ctx = json_val["num_ctx"].as_u64().unwrap() as u32;
         let json_temp = json_val["temperature"].as_f64().unwrap() as f32;
 
         assert_eq!(json_num_ctx, 2048);
