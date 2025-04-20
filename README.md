@@ -19,6 +19,8 @@ A Rust library for interacting with large language models (LLMs) through simple,
   
 - **Gemini Integration**: Support for Google's [Gemini](https://deepmind.google/technologies/gemini/) AI models, including:
   - Text generation
+  - Chat completion
+  - Function calling / tools
   - Streaming responses
 
 - **Modern Rust APIs**:
@@ -199,7 +201,9 @@ Check the `examples/` directory for more detailed examples:
 - `ex_ollama_session.rs`: Multi-turn conversation using sessions
 - `ex_ollama_conversation.rs`: Interactive conversation example
 - `ex_gemini_generate.rs`: Text generation with Gemini
-- `ex_gemini_generate_streamed.rs`: Streamed text generation with Gemini
+- `ex_gemini_generate_stream.rs`: Streamed text generation with Gemini
+- `ex_gemini_chat.rs`: Basic chat interaction with Gemini
+- `ex_gemini_function.rs`: Function calling with Gemini
 
 ## Installation
 
@@ -212,8 +216,9 @@ ollie-rs = "0.1.0"
 
 ## Requirements
 
-- Rust 2021 Edition or newer
-- [Ollama](https://ollama.ai) running locally or on an accessible server
+- Rust 2024 Edition or newer
+- [Ollama](https://ollama.ai) running locally or on an accessible server (for Ollama features)
+- Google AI API Key (for Gemini features)
 
 ## License
 
