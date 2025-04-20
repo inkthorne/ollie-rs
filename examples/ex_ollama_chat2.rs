@@ -25,7 +25,7 @@ async fn main() {
         // .model("granite3.3:8b")
         // .model("gemma3:12b")
         // .set_model("gemma3:4b")
-        .set_model("gemma3:1b")
+        .set_model("gemma3:1.5b")
         .set_options(options)
         .add_message(control)
         .add_message(user)
@@ -34,17 +34,28 @@ async fn main() {
     println!("\n-> question: {question}\n");
 
     // Send the chat request.
-    let mut stream = ollama.chat_json(&request).await.unwrap();
+    let mut stream = ollama.chat2(&request).await.unwrap();
 
     // Handle the streamed responses as they arrive.
-    while let Some(response) = stream.read().await {
-        response["message"]["content"].as_str().map(|content| {
-            print!("{}", content);
-            std::io::stdout().flush().unwrap();
-        });
+    while let Some(response_json) = stream.read().await {
+        let response = OllamaResponse2::from_json(response_json).unwrap();
+
+        // Print the error message, if any.
+        if let Some(err) = response.error() {
+            eprintln!("-> error: {}", err);
+        }
+
+        // Print the message of each response as it arrives.
+        if let Some(message) = response.message() {
+            if let Some(content) = message.content() {
+                print!("{}", content);
+                std::io::stdout().flush().unwrap();
+            }
+        }
     }
 
     // Print the response statistics.
-    let response = OllamaResponse2::from_json(stream.response().clone()).unwrap();
-    response.print_stats();
+    if let Ok(response) = OllamaResponse2::from_json(stream.response()) {
+        response.print_stats();
+    }
 }

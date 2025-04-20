@@ -34,7 +34,7 @@ impl OllamaResponseStream {
         None
     }
 
-    pub fn response(&self) -> &JsonValue {
-        &self.llm_response
+    pub fn response(&self) -> JsonValue {
+        self.llm_response.clone()
     }
 }

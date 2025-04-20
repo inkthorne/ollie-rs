@@ -109,10 +109,7 @@ impl Ollama {
         self.send_request(&url, prompt, response_handler).await
     }
 
-    pub async fn chat_json(
-        &self,
-        request: &JsonValue,
-    ) -> Result<OllamaResponseStream, reqwest::Error> {
+    pub async fn chat2(&self, request: &JsonValue) -> Result<OllamaResponseStream, reqwest::Error> {
         let url = format!("http://{}/api/chat", self.server_addr);
         let http_response = self.http_client.post(url).json(request).send().await?;
         let stream = OllamaResponseStream::new(http_response);

@@ -13,6 +13,9 @@ pub struct OllamaResponse2 {
     done_reason: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     eval_count: Option<u32>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -38,13 +41,13 @@ pub struct OllamaResponse2 {
 }
 
 impl OllamaResponse2 {
-    pub fn to_json(self) -> serde_json::Value {
-        serde_json::to_value(self).unwrap()
-    }
-
     pub fn from_json(json: serde_json::Value) -> Result<Self, serde_json::Error> {
         let response = serde_json::from_value(json)?;
         Ok(response)
+    }
+
+    pub fn to_json(self) -> serde_json::Value {
+        serde_json::to_value(self).unwrap()
     }
 
     pub fn print_stats(&self) {
@@ -53,7 +56,12 @@ impl OllamaResponse2 {
 
         let eval_in_milliseconds = self.eval_duration.unwrap_or(0) / 1_000_000;
         let eval_in_seconds = eval_in_milliseconds as f64 / 1_000.0;
-        let token_rate = tokens as f64 / eval_in_seconds as f64;
+
+        let token_rate = if eval_in_seconds > 0.0 {
+            tokens as f64 / eval_in_seconds as f64
+        } else {
+            0.0
+        };
 
         println!(
             "\n\n-> model: {model}\n-> tokens: {tokens}\n-> eval time: {eval_in_seconds:.1}s\n-> token rate: {token_rate:.1}/sec"
@@ -77,6 +85,10 @@ impl OllamaResponse2 {
 
     pub fn done_reason(&self) -> Option<&str> {
         self.done_reason.as_deref()
+    }
+
+    pub fn error(&self) -> Option<&str> {
+        self.error.as_deref()
     }
 
     pub fn eval_count(&self) -> Option<&u32> {
