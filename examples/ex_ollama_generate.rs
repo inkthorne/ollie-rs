@@ -1,47 +1,38 @@
-use ollie_rs::Ollama;
-use ollie_rs::request::OllamaRequest;
-use std::io::{self, Write};
-
-async fn simple_generate_example() {
-    // Create a default Ollama client (connects to 127.0.0.1:11434)
-    let ollama = Ollama::default();
-
-    // Create and configure the request
-    let mut request = OllamaRequest::new();
-    request
-        .set_model("gemma3:4b") // Use the model available on your Ollama server
-        .set_prompt("Why is the sky blue?");
-
-    request.prompt().map(|prompt| {
-        println!("\nPrompt: {}\n", prompt);
-    });
-
-    // Send the request and handle the response
-    let response = ollama
-        .generate(&request, |response| {
-            // Check if the response is an error
-            if let Some(err) = response.error() {
-                eprintln!("Error: {}", err);
-                return;
-            }
-
-            // Extract the response text and print it
-            response.response().map(|text| {
-                print!("{}", text); // Print each chunk as it arrives
-                io::stdout().flush().unwrap();
-            });
-        })
-        .await
-        .unwrap();
-
-    response.map(|response| {
-        println!("\n\ntokens used: {}", response.tokens_used());
-    });
-
-    println!("\n");
-}
+use ollie_rs::{Ollama, OllamaRequest2, OllamaResponse2};
+use std::io::Write;
 
 #[tokio::main]
 async fn main() {
-    simple_generate_example().await;
+    let ollama = Ollama::default();
+    let question = "Why is ocean water sometimes green?";
+
+    let request = OllamaRequest2::new()
+        .set_model("gemma3:1b")
+        .set_prompt(question)
+        .to_json();
+
+    println!("\n-> question: {question}\n");
+
+    let mut stream = ollama.generate2(&request).await.unwrap();
+
+    // Handle the streamed responses as they arrive.
+    while let Some(response_json) = stream.read().await {
+        let response = OllamaResponse2::from_json(response_json).unwrap();
+
+        // Print the error message, if any.
+        if let Some(err) = response.error() {
+            eprintln!("-> error: {}", err);
+        }
+
+        // Print the message of each response as it arrives.
+        if let Some(text) = response.response() {
+            print!("{}", text);
+            std::io::stdout().flush().unwrap();
+        }
+    }
+
+    // Print the response statistics.
+    if let Ok(response) = OllamaResponse2::from_json(stream.response()) {
+        response.print_stats();
+    }
 }

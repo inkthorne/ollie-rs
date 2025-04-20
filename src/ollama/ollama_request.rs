@@ -17,6 +17,9 @@ pub struct OllamaRequest2 {
     options: Option<JsonValue>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    prompt: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     stream: Option<bool>,
 }
 
@@ -33,6 +36,7 @@ impl OllamaRequest2 {
             model: None,
             messages: None,
             options: None,
+            prompt: None,
             stream: None,
         }
     }
@@ -154,6 +158,15 @@ impl OllamaRequest2 {
     /// The modified `OllamaRequest2` instance.
     pub fn set_options(mut self, options: JsonValue) -> Self {
         self.options = Some(options);
+        self
+    }
+
+    pub fn prompt(&self) -> Option<&String> {
+        self.prompt.as_ref()
+    }
+
+    pub fn set_prompt(mut self, prompt: &str) -> Self {
+        self.prompt = Some(prompt.to_string());
         self
     }
 

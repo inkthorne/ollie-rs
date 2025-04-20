@@ -109,8 +109,57 @@ impl Ollama {
         self.send_request(&url, prompt, response_handler).await
     }
 
+    /// Sends a generation request using a raw JSON value and returns a stream.
+    ///
+    /// ## Arguments
+    ///
+    /// * `request` - A `serde_json::Value` representing the Ollama generate request payload.
+    ///
+    /// ## Returns
+    ///
+    /// * `Ok(OllamaResponseStream)` - A stream that yields Ollama response chunks.
+    /// * `Err(reqwest::Error)` - Any network or server errors that occurred.
+    pub async fn generate2(
+        &self,
+        request: &JsonValue,
+    ) -> Result<OllamaResponseStream, reqwest::Error> {
+        let url = format!("http://{}/api/generate", self.server_addr);
+        self.request2(url.as_str(), request).await
+    }
+
+    /// Sends a chat request using a raw JSON value and returns a stream.
+    ///
+    /// ## Arguments
+    ///
+    /// * `request` - A `serde_json::Value` representing the Ollama chat request payload.
+    ///
+    /// ## Returns
+    ///
+    /// * `Ok(OllamaResponseStream)` - A stream that yields Ollama response chunks.
+    /// * `Err(reqwest::Error)` - Any network or server errors that occurred.
     pub async fn chat2(&self, request: &JsonValue) -> Result<OllamaResponseStream, reqwest::Error> {
         let url = format!("http://{}/api/chat", self.server_addr);
+        self.request2(url.as_str(), request).await
+    }
+
+    /// Sends an HTTP POST request with a JSON payload and returns a response stream.
+    ///
+    /// This is a helper function used by `generate2` and `chat2`.
+    ///
+    /// ## Arguments
+    ///
+    /// * `url` - The target URL for the POST request.
+    /// * `request` - A `serde_json::Value` representing the request payload.
+    ///
+    /// ## Returns
+    ///
+    /// * `Ok(OllamaResponseStream)` - A stream that yields Ollama response chunks.
+    /// * `Err(reqwest::Error)` - Any network or server errors that occurred.
+    pub async fn request2(
+        &self,
+        url: &str,
+        request: &JsonValue,
+    ) -> Result<OllamaResponseStream, reqwest::Error> {
         let http_response = self.http_client.post(url).json(request).send().await?;
         let stream = OllamaResponseStream::new(http_response);
 

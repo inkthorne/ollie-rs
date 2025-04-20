@@ -37,6 +37,9 @@ pub struct OllamaResponse2 {
     prompt_eval_duration: Option<u64>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    response: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     total_duration: Option<u64>,
 }
 
@@ -118,6 +121,10 @@ impl OllamaResponse2 {
 
     pub fn prompt_eval_duration(&self) -> Option<&u64> {
         self.prompt_eval_duration.as_ref()
+    }
+
+    pub fn response(&self) -> Option<&str> {
+        self.response.as_deref()
     }
 
     pub fn total_duration(&self) -> Option<&u64> {

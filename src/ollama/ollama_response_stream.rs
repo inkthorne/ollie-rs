@@ -3,7 +3,8 @@ use serde_json::Value as JsonValue;
 pub struct OllamaResponseStream {
     http_response: reqwest::Response,
     llm_response: JsonValue,
-    accumulated_content: String,
+    llm_responses: Vec<JsonValue>,
+    save_responses: bool,
 }
 
 impl OllamaResponseStream {
@@ -11,8 +12,13 @@ impl OllamaResponseStream {
         Self {
             http_response,
             llm_response: JsonValue::default(),
-            accumulated_content: String::new(),
+            llm_responses: Vec::new(),
+            save_responses: false,
         }
+    }
+
+    pub fn save_responses(&mut self, flag: bool) {
+        self.save_responses = flag;
     }
 
     pub async fn read(&mut self) -> Option<JsonValue> {
@@ -22,12 +28,12 @@ impl OllamaResponseStream {
             let chunk_str = String::from_utf8_lossy(&bytes);
             let chunk: JsonValue = serde_json::from_str(&chunk_str).ok()?;
 
-            if let Some(content) = chunk["message"]["content"].as_str() {
-                self.accumulated_content.push_str(content);
+            if self.save_responses {
+                self.llm_responses.push(chunk.clone());
+            } else {
+                self.llm_response = chunk.clone();
             }
 
-            self.llm_response = chunk.clone();
-            self.llm_response["message"]["content"] = self.accumulated_content.clone().into();
             return Some(chunk);
         }
 
@@ -35,6 +41,35 @@ impl OllamaResponseStream {
     }
 
     pub fn response(&self) -> JsonValue {
+        // If save_responses is true, we need to accumulate the content and response fields.
+        if self.save_responses {
+            let mut accumulated_content = String::new();
+            let mut accumulated_response = String::new();
+
+            for response in &self.llm_responses {
+                if let Some(c) = response["message"]["content"].as_str() {
+                    accumulated_content.push_str(c);
+                }
+
+                if let Some(r) = response["response"].as_str() {
+                    accumulated_response.push_str(r);
+                }
+            }
+
+            let mut response = self.llm_responses.last().unwrap().clone();
+
+            if !accumulated_content.is_empty() {
+                response["message"]["content"] = accumulated_content.into();
+            }
+
+            if !accumulated_response.is_empty() {
+                response["response"] = accumulated_response.into();
+            }
+
+            return response;
+        }
+
+        // If save_responses is false, return the last response.
         self.llm_response.clone()
     }
 }
