@@ -161,12 +161,47 @@ impl OllamaRequest2 {
         self
     }
 
+    /// Returns a reference to the prompt string, if set.
+    ///
+    /// # Returns
+    ///
+    /// An `Option<&String>` containing the prompt.
     pub fn prompt(&self) -> Option<&String> {
         self.prompt.as_ref()
     }
 
+    /// Sets the prompt string for the request.
+    ///
+    /// # Arguments
+    ///
+    /// * `prompt` - A string slice representing the prompt.
+    ///
+    /// # Returns
+    ///
+    /// The modified `OllamaRequest2` instance.
     pub fn set_prompt(mut self, prompt: &str) -> Self {
         self.prompt = Some(prompt.to_string());
+        self
+    }
+
+    /// Adds the message content from an Ollama response JSON to the request's messages.
+    ///
+    /// This method looks for a "message" field within the provided `response` JSON.
+    /// If found, its value is cloned and added to the `messages` list using `add_message`.
+    /// If the "message" field is not present, the request remains unchanged.
+    ///
+    /// # Arguments
+    ///
+    /// * `response` - A `serde_json::Value` representing the Ollama response.
+    ///
+    /// # Returns
+    ///
+    /// The potentially modified `OllamaRequest2` instance.
+    pub fn add_response(self, response: JsonValue) -> Self {
+        if let Some(message) = response.get("message").cloned() {
+            return self.add_message(message);
+        }
+
         self
     }
 

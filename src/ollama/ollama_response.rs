@@ -1,5 +1,6 @@
 use crate::OllamaMessage2;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct OllamaResponse2 {
@@ -66,8 +67,16 @@ impl OllamaResponse2 {
             0.0
         };
 
+        let stats = json!({
+            "model": model,
+            "tokens": tokens,
+            "eval_time": eval_in_seconds,
+            "token_rate": token_rate,
+        });
+
         println!(
-            "\n\n-> model: {model}\n-> tokens: {tokens}\n-> eval time: {eval_in_seconds:.1}s\n-> token rate: {token_rate:.1}/sec"
+            "\n\n-> stats: {}",
+            serde_json::to_string_pretty(&stats).unwrap()
         );
     }
 }
