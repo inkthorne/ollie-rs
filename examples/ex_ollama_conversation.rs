@@ -47,13 +47,11 @@ async fn main() {
             .unwrap();
 
         // Display token usage statistics
-        stats.map(|stats| {
-            println!(
-                "\n\n[Stats] Tokens used: {} of {}",
-                stats.tokens_used(),
-                agent1.context_window_size()
-            );
-        });
+        println!(
+            "\n\n[Stats] Tokens used: {} of {}",
+            stats.tokens_used(),
+            agent1.context_window_size()
+        );
 
         // Optional: Add delay between responses
         // sleep(Duration::from_secs(10)).await;
@@ -78,13 +76,11 @@ async fn main() {
             .unwrap();
 
         // Display token usage statistics
-        stats.map(|stats| {
-            println!(
-                "\n\n[Stats] Tokens used: {} of {}",
-                stats.tokens_used(),
-                agent2.context_window_size()
-            );
-        });
+        println!(
+            "\n\n[Stats] Tokens used: {} of {}",
+            stats.tokens_used(),
+            agent2.context_window_size()
+        );
 
         // Optional: Add delay between responses
         // sleep(Duration::from_secs(10)).await;

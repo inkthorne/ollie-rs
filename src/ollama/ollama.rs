@@ -1,7 +1,5 @@
 use crate::OllamaResponse2;
-use crate::OllamaResponseStream;
 use crate::{OllamaRequest, OllamaRequest2, OllamaResponse};
-use serde_json::Value as JsonValue;
 use std::error::Error;
 use std::net::SocketAddr;
 use std::str::FromStr;
@@ -61,7 +59,7 @@ impl Ollama {
     ///
     /// ## Returns
     ///
-    /// * `Ok(String)` - The generated text response from the model
+    /// * `Ok(Option<OllamaResponse>)` - The final response if successful, or None if no response was received
     /// * `Err(reqwest::Error)` - Any network or server errors that occurred
     ///
     /// ## Note
@@ -81,37 +79,27 @@ impl Ollama {
         self.send_request(&url, prompt, response_handler).await
     }
 
-    /// Sends a generation request using a raw JSON value and returns a stream.
+    /// Sends a generation request to the Ollama server and processes the response with a callback
     ///
     /// ## Arguments
     ///
-    /// * `request` - A `serde_json::Value` representing the Ollama generate request payload.
+    /// * `request` - An `OllamaRequest2` object containing the model, prompt, and other generation parameters
+    /// * `callback` - A function that will be called with each response chunk as it arrives
     ///
     /// ## Returns
     ///
-    /// * `Ok(OllamaResponseStream)` - A stream that yields Ollama response chunks.
-    /// * `Err(reqwest::Error)` - Any network or server errors that occurred.
-    pub async fn generate2(
+    /// * `Ok(OllamaResponse2)` - The final response if successful
+    /// * `Err(Box<dyn Error>)` - Any error that occurred during the request or processing
+    pub async fn generate3<F>(
         &self,
-        request: &JsonValue,
-    ) -> Result<OllamaResponseStream, reqwest::Error> {
+        request: &OllamaRequest2,
+        callback: F,
+    ) -> Result<OllamaResponse2, Box<dyn Error>>
+    where
+        F: FnMut(&OllamaResponse2),
+    {
         let url = format!("http://{}/api/generate", self.server_addr);
-        self.request2(url.as_str(), request).await
-    }
-
-    /// Sends a chat request using a raw JSON value and returns a stream.
-    ///
-    /// ## Arguments
-    ///
-    /// * `request` - A `serde_json::Value` representing the Ollama chat request payload.
-    ///
-    /// ## Returns
-    ///
-    /// * `Ok(OllamaResponseStream)` - A stream that yields Ollama response chunks.
-    /// * `Err(reqwest::Error)` - Any network or server errors that occurred.
-    pub async fn chat2(&self, request: &JsonValue) -> Result<OllamaResponseStream, reqwest::Error> {
-        let url = format!("http://{}/api/chat", self.server_addr);
-        self.request2(url.as_str(), request).await
+        self.request3(&url, request, callback).await
     }
 
     /// Sends a chat request using an OllamaRequest2 object and processes response chunks with a callback.
@@ -129,22 +117,35 @@ impl Ollama {
     ///
     /// * `Ok(OllamaResponse2)` - The final response if successful.
     /// * `Err(Box<dyn Error>)` - Any error that occurred during the request or processing.
-    ///
-    /// ## Example
-    ///
-    /// ```no_run
-    /// # use ollie_rs::{Ollama, OllamaRequest2};
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-    /// let ollama = Ollama::default();
-    /// let request = OllamaRequest2::new().model("llama3").message("user", "Hello");
-    /// let response = ollama.chat3(&request, |chunk| {
-    ///     println!("Received chunk: {:?}", chunk);
-    /// }).await?;
-    /// # Ok(())
-    /// # }
-    /// ```
     pub async fn chat3<F>(
         &self,
+        request: &OllamaRequest2,
+        callback: F,
+    ) -> Result<OllamaResponse2, Box<dyn Error>>
+    where
+        F: FnMut(&OllamaResponse2),
+    {
+        let url = format!("http://{}/api/chat", self.server_addr);
+        self.request3(&url, request, callback).await
+    }
+
+    /// Sends an HTTP POST request with a JSON payload and processes the response with a callback.
+    ///
+    /// This is a helper function used by `generate3` and `chat3`.
+    ///
+    /// ## Arguments
+    ///
+    /// * `url` - The target URL for the POST request.
+    /// * `request` - An `OllamaRequest2` object containing the request parameters.
+    /// * `callback` - A function that will be called with each response chunk as it arrives.
+    ///
+    /// ## Returns
+    ///
+    /// * `Ok(OllamaResponse2)` - The final response if successful.
+    /// * `Err(Box<dyn Error>)` - Any error that occurred during the request or processing.
+    pub async fn request3<F>(
+        &self,
+        url: &str,
         request: &OllamaRequest2,
         mut callback: F,
     ) -> Result<OllamaResponse2, Box<dyn Error>>
@@ -152,7 +153,6 @@ impl Ollama {
         F: FnMut(&OllamaResponse2),
     {
         // Send a POST request to the Ollama server with the JSON payload.
-        let url = format!("http://{}/api/chat", self.server_addr);
         let mut http_response = self.http_client.post(url).json(request).send().await?;
         let mut response = None;
 
@@ -170,40 +170,16 @@ impl Ollama {
         Ok(response.unwrap())
     }
 
-    /// Sends an HTTP POST request with a JSON payload and returns a response stream.
-    ///
-    /// This is a helper function used by `generate2` and `chat2`.
-    ///
-    /// ## Arguments
-    ///
-    /// * `url` - The target URL for the POST request.
-    /// * `request` - A `serde_json::Value` representing the request payload.
-    ///
-    /// ## Returns
-    ///
-    /// * `Ok(OllamaResponseStream)` - A stream that yields Ollama response chunks.
-    /// * `Err(reqwest::Error)` - Any network or server errors that occurred.
-    pub async fn request2(
-        &self,
-        url: &str,
-        request: &JsonValue,
-    ) -> Result<OllamaResponseStream, reqwest::Error> {
-        let http_response = self.http_client.post(url).json(request).send().await?;
-        let stream = OllamaResponseStream::new(http_response);
-
-        Ok(stream)
-    }
-
     /// Sends a chat request to the Ollama server and returns the response
     ///
     /// ## Arguments
     ///
-    /// * `prompt` - The request containing model, messages, and other chat parameters
+    /// * `request` - The request containing model, messages, and other chat parameters
     /// * `response_handler` - Callback function that processes each JSON response chunk
     ///
     /// ## Returns
     ///
-    /// * `Ok(())` - If the request completed successfully
+    /// * `Ok(Option<OllamaResponse>)` - The final response if successful, or None if no response was received
     /// * `Err(reqwest::Error)` - Any network or server errors that occurred
     ///
     /// ## Note
@@ -227,12 +203,12 @@ impl Ollama {
     /// ## Arguments
     ///
     /// * `url` - The complete URL for the API endpoint
-    /// * `prompt` - The request containing model, prompt text, and other parameters
+    /// * `request` - The request containing model, prompt text, and other parameters
     /// * `response_handler` - Callback function that processes each JSON response chunk
     ///
     /// ## Returns
     ///
-    /// * `Ok(())` - If the request completed successfully
+    /// * `Ok(Option<OllamaResponse>)` - The final response if successful, or None if no response was received
     /// * `Err(reqwest::Error)` - Any network or server errors that occurred
     ///
     /// ## Note

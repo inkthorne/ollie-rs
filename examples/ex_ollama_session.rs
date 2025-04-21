@@ -20,13 +20,11 @@ async fn main() {
         .await
         .unwrap();
 
-    response.map(|response| {
-        println!(
-            "\n\n *** STATS: tokens used: {} of {}",
-            response.tokens_used(),
-            session.context_window_size()
-        );
-    });
+    println!(
+        "\n\n *** STATS: tokens used: {} of {}",
+        response.tokens_used(),
+        session.context_window_size()
+    );
 
     // Add second user message to the conversation
     let prompt = "Could you summarize your previous response in a single sentence?";
@@ -42,13 +40,11 @@ async fn main() {
         .await
         .unwrap();
 
-    response.map(|response| {
-        println!(
-            "\n\n *** STATS: tokens used: {} of {}",
-            response.tokens_used(),
-            session.context_window_size()
-        );
-    });
+    println!(
+        "\n\n *** STATS: tokens used: {} of {}",
+        response.tokens_used(),
+        session.context_window_size()
+    );
 
     println!("\n");
 }

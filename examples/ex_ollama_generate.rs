@@ -1,4 +1,4 @@
-use ollie_rs::{Ollama, OllamaRequest2, OllamaResponse2};
+use ollie_rs::{Ollama, OllamaRequest2};
 use std::io::Write;
 
 #[tokio::main]
@@ -8,31 +8,29 @@ async fn main() {
 
     let request = OllamaRequest2::new()
         .set_model("gemma3:1b")
-        .set_prompt(question)
-        .to_json();
+        .set_prompt(question);
 
     println!("\n-> question: {question}\n");
 
-    let mut stream = ollama.generate2(&request).await.unwrap();
+    let result = ollama
+        .generate3(&request, |response| {
+            // Print the error message, if any.
+            if let Some(err) = response.error() {
+                eprintln!("-> error: {}", err);
+            }
 
-    // Handle the streamed responses as they arrive.
-    while let Some(response_json) = stream.read().await {
-        let response = OllamaResponse2::from_json(response_json).unwrap();
+            // Print each chunk as it arrives.
+            if let Some(text) = response.text() {
+                print!("{}", text);
+                std::io::stdout().flush().unwrap();
+            }
+        })
+        .await;
 
-        // Print the error message, if any.
-        if let Some(err) = response.error() {
-            eprintln!("-> error: {}", err);
-        }
-
-        // Print the message of each response as it arrives.
-        if let Some(text) = response.response() {
-            print!("{}", text);
-            std::io::stdout().flush().unwrap();
-        }
+    if result.is_err() {
+        eprintln!("-> error: {}", result.err().unwrap());
+        return;
     }
 
-    // Print the response statistics.
-    if let Ok(response) = OllamaResponse2::from_json(stream.response()) {
-        response.print_stats();
-    }
+    result.unwrap().print_stats();
 }

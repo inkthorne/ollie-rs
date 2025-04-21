@@ -1,6 +1,5 @@
-use crate::{
-    Ollama, OllamaMessage2, OllamaOptions2, OllamaRequest2, OllamaResponse, OllamaResponse2,
-};
+use crate::{Ollama, OllamaMessage2, OllamaOptions2, OllamaRequest2, OllamaResponse2};
+use std::error::Error;
 
 // ===
 // STRUCT: OllamaSession
@@ -155,22 +154,21 @@ impl OllamaSession {
         self.request = self.request.clone().add_message(message);
     }
 
-    /// Sends a prompt to the model and processes the response.
+    /// Sends the current conversation to the model and processes the response.
     ///
-    /// This method sends the prompt to the Ollama model, processes the
-    /// streaming response, and updates the conversation history.
+    /// This method sends the accumulated messages to the Ollama model, processes the
+    /// streaming response, and returns the final response object.
     ///
     /// # Arguments
     ///
-    /// * `prompt` - The text prompt to send to the model.
     /// * `callback` - A function that will be called with each chunk of the response
     ///    as it is received. Use this for handling streaming responses.
     ///
     /// # Returns
     ///
-    /// * `Ok(())` - If the prompt was processed successfully.
-    /// * `Err(String)` - If an error occurred, containing the error message.
-    pub async fn update<F>(&mut self, mut callback: F) -> Result<Option<OllamaResponse2>, String>
+    /// * `Result<OllamaResponse2, Box<dyn Error>>` - The complete response from the model if successful,
+    ///   or an error if something went wrong.
+    pub async fn update<F>(&mut self, mut callback: F) -> Result<OllamaResponse2, Box<dyn Error>>
     where
         F: FnMut(&str),
     {
@@ -182,28 +180,28 @@ impl OllamaSession {
 
         self.request = self.request.clone().set_stream(true);
 
-        let request = self.request.clone().to_json();
-
-        match self.ollama.chat2(&request).await {
-            Ok(mut stream) => {
-                stream.save_responses(true);
-
-                while let Some(response_json) = stream.read().await {
-                    let response = OllamaResponse::from_json(response_json);
-
-                    // Extract the response content and pass it to the callback if available
-                    if let Some(message) = response.message() {
-                        if let Some(content) = message.content() {
-                            callback(content);
-                        }
-                    }
+        let mut accumulated_content = String::new();
+        let result = self
+            .ollama
+            .chat3(&self.request, |response| {
+                // Extract the response content and pass it to the callback, if available.
+                if let Some(content) = response.text() {
+                    callback(content);
+                    accumulated_content.push_str(content);
                 }
+            })
+            .await;
 
-                let response = OllamaResponse2::from_json(stream.response()).ok();
-                Ok(response)
-            }
-
-            Err(e) => Err(e.to_string()),
+        // Add the accumulated content to the request.
+        if !accumulated_content.is_empty() {
+            self.request = self.request.clone().add_message(
+                OllamaMessage2::new()
+                    .set_role("assistant")
+                    .set_content(&accumulated_content)
+                    .to_json(),
+            );
         }
+
+        result
     }
 }
