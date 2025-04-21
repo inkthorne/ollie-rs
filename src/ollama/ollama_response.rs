@@ -1,6 +1,7 @@
 use crate::OllamaMessage2;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::fmt;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct OllamaResponse2 {
@@ -56,22 +57,23 @@ impl OllamaResponse2 {
 
     pub fn print_stats(&self) {
         let model = self.model().unwrap_or("unknown model");
-        let tokens = self.eval_count.unwrap_or(0);
+        let eval_tokens = self.eval_count.unwrap_or(0);
 
         let eval_in_milliseconds = self.eval_duration.unwrap_or(0) / 1_000_000;
         let eval_in_seconds = eval_in_milliseconds as f64 / 1_000.0;
 
         let token_rate = if eval_in_seconds > 0.0 {
-            tokens as f64 / eval_in_seconds as f64
+            eval_tokens as f64 / eval_in_seconds as f64
         } else {
             0.0
         };
 
         let stats = json!({
             "model": model,
-            "tokens": tokens,
+            "context_used": self.tokens_used(),
             "eval_time": eval_in_seconds,
-            "token_rate": token_rate,
+            "eval_tokens": eval_tokens,
+            "eval_rate": token_rate,
         });
 
         println!(
@@ -144,6 +146,10 @@ impl OllamaResponse2 {
         self.message.as_ref()
     }
 
+    pub fn set_message(&mut self, message: OllamaMessage2) {
+        self.message = Some(message);
+    }
+
     /// Returns the model name used for the response.
     pub fn model(&self) -> Option<&str> {
         self.model.as_deref()
@@ -161,7 +167,30 @@ impl OllamaResponse2 {
         self.response.as_deref()
     }
 
+    pub fn set_response(&mut self, response: &str) {
+        self.response = Some(response.to_string());
+    }
+
     pub fn total_duration(&self) -> Option<&u64> {
         self.total_duration.as_ref()
+    }
+}
+
+// ===
+// TRAIT: Display for OllamaResponse2
+// ===
+
+impl fmt::Display for OllamaResponse2 {
+    /// Formats the OllamaResponse2 for display using pretty-printed JSON.
+    ///
+    /// # Arguments
+    /// * `f` - The formatter to write the output to
+    ///
+    /// # Returns
+    /// * Result indicating whether the formatting operation succeeded
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let json = serde_json::to_value(self).unwrap();
+        let pretty = serde_json::to_string_pretty(&json).unwrap_or_default();
+        write!(f, "{}", pretty)
     }
 }

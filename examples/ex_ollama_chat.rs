@@ -67,7 +67,7 @@ async fn main() {
 
     // Add the response and the new user message to the previous request.
     request = request
-        .add_response(response.to_json())
+        .add_response(&response)
         .add_message(user)
         .set_stream(false);
 

@@ -155,6 +155,7 @@ impl Ollama {
         // Send a POST request to the Ollama server with the JSON payload.
         let mut http_response = self.http_client.post(url).json(request).send().await?;
         let mut response = None;
+        let mut accumulated_text = String::new();
 
         while let Some(chunk_bytes) = http_response.chunk().await? {
             // Deserialize the chunk into a OllamaRequest object.
@@ -162,9 +163,30 @@ impl Ollama {
             let chunk_json = serde_json::from_str(&chunk_string)?;
             let chunk_response = OllamaResponse2::from_json(chunk_json)?;
 
+            // Accumulate the content text (if streaming).
+            if let Some(text) = chunk_response.text() {
+                accumulated_text.push_str(text);
+            }
+
             // Forward the response to the callback.
             callback(&chunk_response);
             response = Some(chunk_response);
+        }
+
+        let streaming = request.stream().unwrap_or(true);
+
+        // If streaming, set the accumulated text in the final response.
+        if streaming {
+            if let Some(r) = &mut response {
+                // If the request contains messages, set the accumulated text as the final response.
+                if let Some(message) = r.message() {
+                    let message = message.clone().set_content(&accumulated_text);
+                    r.set_message(message);
+                } else {
+                    // Otherwise, set the accumulated text as the final response.
+                    r.set_response(&accumulated_text);
+                }
+            }
         }
 
         Ok(response.unwrap())

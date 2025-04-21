@@ -1,5 +1,7 @@
+use crate::OllamaResponse2;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
+use std::fmt;
 
 // ===
 // STRUCT: OllamaRequest2
@@ -197,9 +199,10 @@ impl OllamaRequest2 {
     /// # Returns
     ///
     /// The potentially modified `OllamaRequest2` instance.
-    pub fn add_response(self, response: JsonValue) -> Self {
-        if let Some(message) = response.get("message").cloned() {
-            return self.add_message(message);
+    pub fn add_response(self, response: &OllamaResponse2) -> Self {
+        if let Some(message) = response.message() {
+            let message_json = message.clone().to_json();
+            return self.add_message(message_json);
         }
 
         self
@@ -226,6 +229,18 @@ impl OllamaRequest2 {
     pub fn set_stream(mut self, stream: bool) -> Self {
         self.stream = Some(stream);
         self
+    }
+}
+
+// ===
+// TRAIT: Display for OllamaRequest2
+// ===
+
+impl fmt::Display for OllamaRequest2 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let request_json = serde_json::to_value(&self).unwrap();
+        let pretty_string = serde_json::to_string_pretty(&request_json).unwrap();
+        write!(f, "{pretty_string}")
     }
 }
 
@@ -377,7 +392,7 @@ mod tests {
 
     #[test]
     fn test_add_response() {
-        let response_with_message = json!({
+        let response_with_message_json = json!({
             "model": "llama2",
             "created_at": "2023-08-04T08:52:19.385406455Z",
             "message": {
@@ -386,11 +401,15 @@ mod tests {
             },
             "done": true
         });
-        let response_without_message = json!({
+        let response_with_message = OllamaResponse2::from_json(response_with_message_json).unwrap();
+        let response_without_message_json = json!({
             "model": "llama2",
             "created_at": "2023-08-04T08:52:19.385406455Z",
             "done": true
         });
+        let response_without_message =
+            OllamaResponse2::from_json(response_without_message_json).unwrap();
+
         let expected_message = json!({
             "role": "assistant",
             "content": "Response message content"
@@ -398,7 +417,7 @@ mod tests {
 
         // Test adding response when messages is None
         let req1 = OllamaRequest2::new();
-        let req1_updated = req1.add_response(response_with_message.clone());
+        let req1_updated = req1.add_response(&response_with_message);
         assert!(req1_updated.messages().is_some());
         assert_eq!(req1_updated.messages().unwrap().len(), 1);
         assert_eq!(req1_updated.messages().unwrap()[0], expected_message);
@@ -406,7 +425,7 @@ mod tests {
         // Test adding response when messages already exists
         let initial_message = json!({"role": "user", "content": "Initial prompt"});
         let req2 = OllamaRequest2::new().add_message(initial_message.clone());
-        let req2_updated = req2.add_response(response_with_message.clone());
+        let req2_updated = req2.add_response(&response_with_message);
         assert!(req2_updated.messages().is_some());
         assert_eq!(req2_updated.messages().unwrap().len(), 2);
         assert_eq!(req2_updated.messages().unwrap()[0], initial_message);
@@ -414,11 +433,11 @@ mod tests {
 
         // Test adding response without a message field
         let req3 = OllamaRequest2::new();
-        let req3_updated = req3.add_response(response_without_message.clone());
+        let req3_updated = req3.add_response(&response_without_message);
         assert!(req3_updated.messages().is_none()); // Should remain None
 
         let req4 = OllamaRequest2::new().add_message(initial_message.clone());
-        let req4_updated = req4.add_response(response_without_message);
+        let req4_updated = req4.add_response(&response_without_message);
         assert!(req4_updated.messages().is_some());
         assert_eq!(req4_updated.messages().unwrap().len(), 1); // Should remain unchanged
         assert_eq!(req4_updated.messages().unwrap()[0], initial_message);

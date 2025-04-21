@@ -179,29 +179,17 @@ impl OllamaSession {
             .set_options(self.options.clone().to_json());
 
         self.request = self.request.clone().set_stream(true);
-
-        let mut accumulated_content = String::new();
-        let result = self
+        let response = self
             .ollama
             .chat3(&self.request, |response| {
                 // Extract the response content and pass it to the callback, if available.
                 if let Some(content) = response.text() {
                     callback(content);
-                    accumulated_content.push_str(content);
                 }
             })
-            .await;
+            .await?;
 
-        // Add the accumulated content to the request.
-        if !accumulated_content.is_empty() {
-            self.request = self.request.clone().add_message(
-                OllamaMessage2::new()
-                    .set_role("assistant")
-                    .set_content(&accumulated_content)
-                    .to_json(),
-            );
-        }
-
-        result
+        self.request = self.request.clone().add_response(&response);
+        Ok(response)
     }
 }
