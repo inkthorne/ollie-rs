@@ -16,8 +16,8 @@ pub use response::*;
 pub mod tool;
 pub use tool::*;
 
-pub mod session;
-pub use session::*;
+pub mod ollama_session;
+pub use ollama_session::*;
 
 pub mod ollama_message;
 pub use ollama_message::*;
