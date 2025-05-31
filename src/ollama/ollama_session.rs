@@ -189,6 +189,22 @@ impl OllamaSession {
             })
             .await?;
 
+        /*
+        let req = self.request.clone();
+        let mut option = Some(req);
+
+        // TODO: Using an option seems like the best choice.
+        if let Some(r) = option.take() {
+            option = Some(r.set_stream(false));
+        }
+
+        if option.is_none() {
+            println!("it's none!");
+        }
+
+        self.request = self.request.set_stream(true);
+        */
+
         self.request = self.request.clone().add_response(&response);
         Ok(response)
     }
