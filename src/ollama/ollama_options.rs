@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize)]
 pub struct OllamaOptions2 {
     #[serde(skip_serializing_if = "Option::is_none")]
     num_ctx: Option<u32>,
@@ -82,7 +82,9 @@ impl OllamaOptions2 {
     /// use ollie_rs::OllamaOptions2;
     /// use serde_json::json;
     ///
-    /// let options = OllamaOptions2::new().set_num_ctx(2048).set_temperature(0.5);
+    /// let mut options = OllamaOptions2::new();
+    /// options.set_num_ctx(2048).set_temperature(0.5);
+    ///
     /// let json_val = options.to_json();
     ///
     /// assert_eq!(json_val, json!({
@@ -90,8 +92,8 @@ impl OllamaOptions2 {
     ///     "temperature": 0.5
     /// }));
     /// ```
-    pub fn to_json(self) -> JsonValue {
-        serde_json::to_value(self).unwrap()
+    pub fn to_json(&self) -> JsonValue {
+        serde_json::to_value(&self).unwrap()
     }
 
     /// Returns the number of context tokens, or `None` if not set.
@@ -118,19 +120,20 @@ impl OllamaOptions2 {
     /// ```
     /// use ollie_rs::OllamaOptions2;
     ///
-    /// let options = OllamaOptions2::new().set_num_ctx(2048);
+    /// let mut options = OllamaOptions2::new();
+    /// options.set_num_ctx(2048);
     /// assert_eq!(options.num_ctx(), Some(2048));
     /// ```
-    pub fn set_num_ctx(mut self, num_ctx: u32) -> Self {
+    pub fn set_num_ctx(&mut self, num_ctx: u32) -> &mut Self {
         self.num_ctx = Some(num_ctx);
         self
     }
 
-    /// Returns the number of LLM layers used on the GPUs, or `None` if not set.
+    /// Returns the number of LLM layers to push to the GPU, or `None` if not set.
     ///
     /// # Returns
     ///
-    /// An `Option<i32>` containing the number of GPUs if set, otherwise `None`.
+    /// An `Option<i32>` containing the number of LLM layers to push to the GPU if set, otherwise `None`.
     pub fn num_gpu(&self) -> Option<i32> {
         self.num_gpu
     }
@@ -150,10 +153,11 @@ impl OllamaOptions2 {
     /// ```
     /// use ollie_rs::OllamaOptions2;
     ///
-    /// let options = OllamaOptions2::new().set_num_gpu(1);
+    /// let mut options = OllamaOptions2::new();
+    /// options.set_num_gpu(1);
     /// assert_eq!(options.num_gpu(), Some(1));
     /// ```
-    pub fn set_num_gpu(mut self, num_gpu: i32) -> Self {
+    pub fn set_num_gpu(&mut self, num_gpu: i32) -> &mut Self {
         self.num_gpu = Some(num_gpu);
         self
     }
@@ -182,10 +186,11 @@ impl OllamaOptions2 {
     /// ```
     /// use ollie_rs::OllamaOptions2;
     ///
-    /// let options = OllamaOptions2::new().set_num_predict(100);
+    /// let mut options = OllamaOptions2::new();
+    /// options.set_num_predict(100);
     /// assert_eq!(options.num_predict(), Some(100));
     /// ```
-    pub fn set_num_predict(mut self, num_predict: i32) -> Self {
+    pub fn set_num_predict(&mut self, num_predict: i32) -> &mut Self {
         self.num_predict = Some(num_predict);
         self
     }
@@ -215,10 +220,11 @@ impl OllamaOptions2 {
     /// ```
     /// use ollie_rs::OllamaOptions2;
     ///
-    /// let options = OllamaOptions2::new().set_temperature(0.7);
+    /// let mut options = OllamaOptions2::new();
+    /// options.set_temperature(0.7);
     /// assert_eq!(options.temperature(), Some(0.7));
     /// ```
-    pub fn set_temperature(mut self, temperature: f32) -> Self {
+    pub fn set_temperature(&mut self, temperature: f32) -> &mut Self {
         self.temperature = Some(temperature);
         self
     }
@@ -245,7 +251,8 @@ mod tests {
 
     #[test]
     fn test_accessors() {
-        let options = OllamaOptions2::new()
+        let mut options = OllamaOptions2::new();
+        options
             .set_num_ctx(2048)
             .set_num_gpu(1)
             .set_num_predict(100)
@@ -304,7 +311,8 @@ mod tests {
 
     #[test]
     fn test_to_json() {
-        let options = OllamaOptions2::new().set_num_ctx(2048).set_temperature(0.7);
+        let mut options = OllamaOptions2::new();
+        options.set_num_ctx(2048).set_temperature(0.7);
 
         let json_val = options.to_json();
 

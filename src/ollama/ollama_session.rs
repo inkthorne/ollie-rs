@@ -108,7 +108,7 @@ impl OllamaSession {
     }
 
     pub fn set_context_window_size(&mut self, num_ctx: u32) {
-        self.options = self.options.clone().set_num_ctx(num_ctx);
+        self.options.set_num_ctx(num_ctx);
     }
 
     /// Gets a mutable reference to the options for configuring model behavior.
@@ -173,10 +173,7 @@ impl OllamaSession {
         F: FnMut(&str),
     {
         // Apply options to the request
-        self.request = self
-            .request
-            .clone()
-            .set_options(self.options.clone().to_json());
+        self.request = self.request.clone().set_options(self.options.to_json());
 
         self.request = self.request.clone().set_stream(true);
         let response = self
