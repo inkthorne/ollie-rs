@@ -40,10 +40,7 @@ cargo add ollie-rs
 ### Example: Simple Chat with Ollama
 
 ```rust
-use ollie_rs::Ollama;
-use ollie_rs::OllamaMessage;
-use ollie_rs::OllamaOptions;
-use ollie_rs::OllamaRequest;
+use ollie_rs::{Ollama, OllamaMessage2, OllamaOptions2, OllamaRequest2};
 
 #[tokio::main]
 async fn main() {
@@ -51,25 +48,29 @@ async fn main() {
     let ollama = Ollama::default();
     
     // Optional: Configure parameters
-    let mut options = OllamaOptions::new();
+    let mut options = OllamaOptions2::new();
     options.set_temperature(0.7);
     
     // Create a message
-    let mut message = OllamaMessage::new();
-    message.set_role("user").set_content("Why is the sky blue?");
+    let message = OllamaMessage2::new()
+        .set_role("user")
+        .set_content("Why is the sky blue?")
+        .to_json();
     
     // Create and configure the request
-    let mut request = OllamaRequest::new();
+    let mut request = OllamaRequest2::new();
     request
         .set_model("llama3") // Use any model available on your Ollama server
-        .set_options(&options)
-        .add_message(&message);
+        .set_options(&options.to_json())
+        .add_message(message);
     
     // Send the chat request and handle the response
     ollama
-        .chat(&request, |response| {
+        .chat3(&request, |response| {
             // Print each chunk as it arrives
-            response.content().map(|text| print!("{}", text));
+            if let Some(text) = response.text() {
+                print!("{}", text);
+            }
         })
         .await
         .unwrap();
@@ -118,7 +119,7 @@ async fn main() {
 ollie-rs supports function calling (tools) with Ollama models that have this capability:
 
 ```rust
-use ollie_rs::{Ollama, OllamaFunction, OllamaFunctionParameters, OllamaMessage, OllamaRequest, OllamaTools};
+use ollie_rs::{Ollama, OllamaFunction, OllamaFunctionParameters, OllamaMessage2, OllamaRequest2, OllamaTools};
 
 #[tokio::main]
 async fn main() {
@@ -144,18 +145,18 @@ async fn main() {
     tools.push_function(weather_function);
     
     // Create a message that might trigger tool use
-    let mut message = OllamaMessage::new();
+    let mut message = OllamaMessage2::new();
     message.set_role("user").set_content("What's the weather like in Paris?");
     
     // Create the request with tools
-    let mut request = OllamaRequest::new();
+    let mut request = OllamaRequest2::new();
     request
         .set_model("llama3")
         .set_tools(&tools)
         .add_message(&message);
     
     // Handle the response
-    ollama.chat(&request, |response| {
+    ollama.chat3(&request, |response| {
         // Process tool calls or regular responses
         if let Some(message) = response.message() {
             if let Some(tool_calls) = message.tool_calls() {

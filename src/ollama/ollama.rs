@@ -50,35 +50,6 @@ impl Ollama {
         &self.server_addr
     }
 
-    /// Sends a generation request to the Ollama server and returns the response
-    ///
-    /// ## Arguments
-    ///
-    /// * `prompt` - The request containing model, prompt text, and other generation parameters
-    /// * `response_handler` - Callback function that processes each JSON response chunk
-    ///
-    /// ## Returns
-    ///
-    /// * `Ok(Option<OllamaResponse>)` - The final response if successful, or None if no response was received
-    /// * `Err(reqwest::Error)` - Any network or server errors that occurred
-    ///
-    /// ## Note
-    ///
-    /// This function handles streaming responses by collecting chunks until completion.
-    /// For streamed responses, it parses each chunk as a JSON object and concatenates
-    /// the response text together.
-    pub async fn generate<F>(
-        &self,
-        prompt: &OllamaRequest,
-        response_handler: F,
-    ) -> Result<Option<OllamaResponse>, reqwest::Error>
-    where
-        F: FnMut(&OllamaResponse),
-    {
-        let url = format!("http://{}/api/generate", self.server_addr);
-        self.send_request(&url, prompt, response_handler).await
-    }
-
     /// Sends a generation request to the Ollama server and processes the response with a callback
     ///
     /// ## Arguments
@@ -191,34 +162,6 @@ impl Ollama {
         }
 
         Ok(response.unwrap())
-    }
-
-    /// Sends a chat request to the Ollama server and returns the response
-    ///
-    /// ## Arguments
-    ///
-    /// * `request` - The request containing model, messages, and other chat parameters
-    /// * `response_handler` - Callback function that processes each JSON response chunk
-    ///
-    /// ## Returns
-    ///
-    /// * `Ok(Option<OllamaResponse>)` - The final response if successful, or None if no response was received
-    /// * `Err(reqwest::Error)` - Any network or server errors that occurred
-    ///
-    /// ## Note
-    ///
-    /// This function is similar to `generate` but uses the chat API endpoint.
-    /// It handles streaming responses by collecting chunks until completion.
-    pub async fn chat<F>(
-        &self,
-        request: &OllamaRequest,
-        response_handler: F,
-    ) -> Result<Option<OllamaResponse>, reqwest::Error>
-    where
-        F: FnMut(&OllamaResponse),
-    {
-        let url = format!("http://{}/api/chat", self.server_addr);
-        self.send_request(&url, request, response_handler).await
     }
 
     /// Sends a request to a specific Ollama API endpoint and processes the response
