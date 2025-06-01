@@ -82,12 +82,12 @@ impl OllamaOptions2 {
     /// use ollie_rs::OllamaOptions2;
     /// use serde_json::json;
     ///
-    /// let options = OllamaOptions2::new().set_num_ctx(2048).set_temperature(0.7);
+    /// let options = OllamaOptions2::new().set_num_ctx(2048).set_temperature(0.5);
     /// let json_val = options.to_json();
     ///
     /// assert_eq!(json_val, json!({
     ///     "num_ctx": 2048,
-    ///     "temperature": 0.7
+    ///     "temperature": 0.5
     /// }));
     /// ```
     pub fn to_json(self) -> JsonValue {
