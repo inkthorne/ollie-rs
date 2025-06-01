@@ -25,7 +25,7 @@ async fn main() {
         // .model("gemma3:12b")
         // .set_model("gemma3:4b")
         .set_model("gemma3:1b")
-        .set_options(options.to_json())
+        .set_options(&options.to_json())
         .add_message(control)
         .add_message(user);
 

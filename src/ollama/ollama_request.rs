@@ -116,8 +116,8 @@ impl OllamaRequest2 {
     /// # Returns
     ///
     /// The modified `OllamaRequest2` instance.
-    pub fn set_messages(&mut self, messages: Vec<JsonValue>) -> &mut Self {
-        self.messages = Some(messages);
+    pub fn set_messages(&mut self, messages: &Vec<JsonValue>) -> &mut Self {
+        self.messages = Some(messages.clone());
         self
     }
 
@@ -158,8 +158,8 @@ impl OllamaRequest2 {
     /// # Returns
     ///
     /// The modified `OllamaRequest2` instance.
-    pub fn set_options(&mut self, options: JsonValue) -> &mut Self {
-        self.options = Some(options);
+    pub fn set_options(&mut self, options: &JsonValue) -> &mut Self {
+        self.options = Some(options.clone());
         self
     }
 
@@ -201,7 +201,7 @@ impl OllamaRequest2 {
     /// The potentially modified `OllamaRequest2` instance.
     pub fn add_response(&mut self, response: &OllamaResponse2) -> &mut Self {
         if let Some(message) = response.message() {
-            let message_json = message.clone().to_json();
+            let message_json = message.to_json();
             return self.add_message(message_json);
         }
 
@@ -269,8 +269,8 @@ mod tests {
 
         let mut req = OllamaRequest2::new();
         req.set_model("llama2")
-            .set_messages(messages.clone())
-            .set_options(options.clone())
+            .set_messages(&messages)
+            .set_options(&options)
             .set_stream(true);
 
         assert_eq!(req.model(), Some(&"llama2".to_string()));
@@ -298,8 +298,8 @@ mod tests {
         let options = json!({"seed": 123});
         let mut req = OllamaRequest2::new();
         req.set_model("test-model")
-            .set_messages(messages.clone())
-            .set_options(options.clone())
+            .set_messages(&messages)
+            .set_options(&options)
             .set_stream(false);
 
         let expected_json = json!({

@@ -178,7 +178,7 @@ impl OllamaSession {
         F: FnMut(&str),
     {
         // Apply options to the request
-        self.request.set_options(self.options.to_json());
+        self.request.set_options(&self.options.to_json());
         self.request.set_stream(true);
         let response = self
             .ollama
