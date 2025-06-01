@@ -7,7 +7,7 @@ use std::fmt;
 // STRUCT: OllamaRequest2
 // ===
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize)]
 pub struct OllamaRequest2 {
     #[serde(skip_serializing_if = "Option::is_none")]
     model: Option<String>,
@@ -71,8 +71,8 @@ impl OllamaRequest2 {
     ///
     /// A `serde_json::Value` representing the serialized `OllamaRequest2`.
     /// Panics if serialization fails (which should generally not happen for this struct).
-    pub fn to_json(self) -> JsonValue {
-        serde_json::to_value(self).unwrap()
+    pub fn to_json(&self) -> JsonValue {
+        serde_json::to_value(&self).unwrap()
     }
 
     /// Returns a reference to the model name, if set.
@@ -93,7 +93,7 @@ impl OllamaRequest2 {
     /// # Returns
     ///
     /// The modified `OllamaRequest2` instance.
-    pub fn set_model(mut self, model: &str) -> Self {
+    pub fn set_model(&mut self, model: &str) -> &mut Self {
         self.model = Some(model.to_string());
         self
     }
@@ -116,7 +116,7 @@ impl OllamaRequest2 {
     /// # Returns
     ///
     /// The modified `OllamaRequest2` instance.
-    pub fn set_messages(mut self, messages: Vec<JsonValue>) -> Self {
+    pub fn set_messages(&mut self, messages: Vec<JsonValue>) -> &mut Self {
         self.messages = Some(messages);
         self
     }
@@ -132,7 +132,7 @@ impl OllamaRequest2 {
     /// # Returns
     ///
     /// The modified `OllamaRequest2` instance.
-    pub fn add_message(mut self, message: JsonValue) -> Self {
+    pub fn add_message(&mut self, message: JsonValue) -> &mut Self {
         match &mut self.messages {
             Some(messages) => messages.push(message),
             None => self.messages = Some(vec![message]),
@@ -158,7 +158,7 @@ impl OllamaRequest2 {
     /// # Returns
     ///
     /// The modified `OllamaRequest2` instance.
-    pub fn set_options(mut self, options: JsonValue) -> Self {
+    pub fn set_options(&mut self, options: JsonValue) -> &mut Self {
         self.options = Some(options);
         self
     }
@@ -181,7 +181,7 @@ impl OllamaRequest2 {
     /// # Returns
     ///
     /// The modified `OllamaRequest2` instance.
-    pub fn set_prompt(mut self, prompt: &str) -> Self {
+    pub fn set_prompt(&mut self, prompt: &str) -> &mut Self {
         self.prompt = Some(prompt.to_string());
         self
     }
@@ -199,7 +199,7 @@ impl OllamaRequest2 {
     /// # Returns
     ///
     /// The potentially modified `OllamaRequest2` instance.
-    pub fn add_response(self, response: &OllamaResponse2) -> Self {
+    pub fn add_response(&mut self, response: &OllamaResponse2) -> &mut Self {
         if let Some(message) = response.message() {
             let message_json = message.clone().to_json();
             return self.add_message(message_json);
@@ -226,7 +226,7 @@ impl OllamaRequest2 {
     /// # Returns
     ///
     /// The modified `OllamaRequest2` instance.
-    pub fn set_stream(mut self, stream: bool) -> Self {
+    pub fn set_stream(&mut self, stream: bool) -> &mut Self {
         self.stream = Some(stream);
         self
     }
@@ -267,8 +267,8 @@ mod tests {
         let messages = vec![json!({"role": "user", "content": "Hello"})];
         let options = json!({"temperature": 0.8});
 
-        let req = OllamaRequest2::new()
-            .set_model("llama2")
+        let mut req = OllamaRequest2::new();
+        req.set_model("llama2")
             .set_messages(messages.clone())
             .set_options(options.clone())
             .set_stream(true);
@@ -284,7 +284,8 @@ mod tests {
         let msg1 = json!({"role": "user", "content": "First message"});
         let msg2 = json!({"role": "assistant", "content": "Second message"});
 
-        let req = OllamaRequest2::new().add_message(msg1.clone());
+        let mut req = OllamaRequest2::new();
+        req.add_message(msg1.clone());
         assert_eq!(req.messages(), Some(&vec![msg1.clone()]));
 
         let req = req.add_message(msg2.clone());
@@ -295,8 +296,8 @@ mod tests {
     fn test_to_json_full() {
         let messages = vec![json!({"role": "user", "content": "Test"})];
         let options = json!({"seed": 123});
-        let req = OllamaRequest2::new()
-            .set_model("test-model")
+        let mut req = OllamaRequest2::new();
+        req.set_model("test-model")
             .set_messages(messages.clone())
             .set_options(options.clone())
             .set_stream(false);
@@ -313,14 +314,14 @@ mod tests {
 
     #[test]
     fn test_to_json_minimal() {
-        let req = OllamaRequest2::new().set_model("minimal-model");
+        let mut req = OllamaRequest2::new();
+        req.set_model("minimal-model");
 
         let expected_json = json!({
             "model": "minimal-model"
         });
-        // Clone req before calling to_json which consumes self
-        let req_clone = req.clone();
-        assert_eq!(req_clone.to_json(), expected_json);
+
+        assert_eq!(req.to_json(), expected_json);
         assert!(req.messages.is_none()); // Verify other fields remain None
         assert!(req.options.is_none());
         assert!(req.stream.is_none());
@@ -383,7 +384,8 @@ mod tests {
 
     #[test]
     fn test_prompt_setter_getter() {
-        let req = OllamaRequest2::new().set_prompt("This is a test prompt.");
+        let mut req = OllamaRequest2::new();
+        req.set_prompt("This is a test prompt.");
         assert_eq!(req.prompt(), Some(&"This is a test prompt.".to_string()));
 
         let req_none = OllamaRequest2::new();
@@ -416,46 +418,46 @@ mod tests {
         });
 
         // Test adding response when messages is None
-        let req1 = OllamaRequest2::new();
-        let req1_updated = req1.add_response(&response_with_message);
-        assert!(req1_updated.messages().is_some());
-        assert_eq!(req1_updated.messages().unwrap().len(), 1);
-        assert_eq!(req1_updated.messages().unwrap()[0], expected_message);
+        let mut req1 = OllamaRequest2::new();
+        req1.add_response(&response_with_message);
+        assert!(req1.messages().is_some());
+        assert_eq!(req1.messages().unwrap().len(), 1);
+        assert_eq!(req1.messages().unwrap()[0], expected_message);
 
         // Test adding response when messages already exists
         let initial_message = json!({"role": "user", "content": "Initial prompt"});
-        let req2 = OllamaRequest2::new().add_message(initial_message.clone());
-        let req2_updated = req2.add_response(&response_with_message);
-        assert!(req2_updated.messages().is_some());
-        assert_eq!(req2_updated.messages().unwrap().len(), 2);
-        assert_eq!(req2_updated.messages().unwrap()[0], initial_message);
-        assert_eq!(req2_updated.messages().unwrap()[1], expected_message);
+        let mut req2 = OllamaRequest2::new();
+        req2.add_message(initial_message.clone());
+        req2.add_response(&response_with_message);
+        assert!(req2.messages().is_some());
+        assert_eq!(req2.messages().unwrap().len(), 2);
+        assert_eq!(req2.messages().unwrap()[0], initial_message);
+        assert_eq!(req2.messages().unwrap()[1], expected_message);
 
         // Test adding response without a message field
-        let req3 = OllamaRequest2::new();
-        let req3_updated = req3.add_response(&response_without_message);
-        assert!(req3_updated.messages().is_none()); // Should remain None
+        let mut req3 = OllamaRequest2::new();
+        req3.add_response(&response_without_message);
+        assert!(req3.messages().is_none()); // Should remain None
 
-        let req4 = OllamaRequest2::new().add_message(initial_message.clone());
-        let req4_updated = req4.add_response(&response_without_message);
-        assert!(req4_updated.messages().is_some());
-        assert_eq!(req4_updated.messages().unwrap().len(), 1); // Should remain unchanged
-        assert_eq!(req4_updated.messages().unwrap()[0], initial_message);
+        let mut req4 = OllamaRequest2::new();
+        req4.add_message(initial_message.clone());
+        req4.add_response(&response_without_message);
+        assert!(req4.messages().is_some());
+        assert_eq!(req4.messages().unwrap().len(), 1); // Should remain unchanged
+        assert_eq!(req4.messages().unwrap()[0], initial_message);
     }
 
     #[test]
     fn test_to_json_with_prompt() {
-        let req = OllamaRequest2::new()
-            .set_model("test-model")
-            .set_prompt("Test prompt");
+        let mut req = OllamaRequest2::new();
+        req.set_model("test-model").set_prompt("Test prompt");
 
         let expected_json = json!({
             "model": "test-model",
             "prompt": "Test prompt"
         });
-        // Clone req before calling to_json which consumes self
-        let req_clone = req.clone();
-        assert_eq!(req_clone.to_json(), expected_json);
+
+        assert_eq!(req.to_json(), expected_json);
     }
 
     #[test]

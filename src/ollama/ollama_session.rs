@@ -48,7 +48,9 @@ impl OllamaSession {
     ///
     /// A new `OllamaSession` instance configured to use the specified model with the local server.
     pub fn local(model: &str) -> Self {
-        let request = OllamaRequest2::new().set_model(model);
+        let mut request = OllamaRequest2::new();
+        request.set_model(model);
+
         let ollama = Ollama::default();
 
         OllamaSession {
@@ -69,8 +71,10 @@ impl OllamaSession {
     ///
     /// A new `OllamaChat` instance configured to use the specified model.
     pub fn remote(model: &str, server_address: &str) -> Self {
+        let mut request = OllamaRequest2::new();
+        request.set_model(model);
+
         let ollama = Ollama::new(server_address);
-        let request = OllamaRequest2::new().set_model(model);
 
         OllamaSession {
             ollama,
@@ -92,7 +96,8 @@ impl OllamaSession {
             .set_role("assistant")
             .set_content(content)
             .to_json();
-        self.request = self.request.clone().add_message(message);
+
+        self.request.add_message(message);
     }
 
     /// Gets the context window size for the model.
@@ -134,7 +139,7 @@ impl OllamaSession {
             .set_content(content)
             .to_json();
 
-        self.request = self.request.clone().add_message(message);
+        self.request.add_message(message);
     }
 
     /// Adds a system message to the conversation.
@@ -151,7 +156,7 @@ impl OllamaSession {
             .set_content(content)
             .to_json();
 
-        self.request = self.request.clone().add_message(message);
+        self.request.add_message(message);
     }
 
     /// Sends the current conversation to the model and processes the response.
@@ -173,9 +178,8 @@ impl OllamaSession {
         F: FnMut(&str),
     {
         // Apply options to the request
-        self.request = self.request.clone().set_options(self.options.to_json());
-
-        self.request = self.request.clone().set_stream(true);
+        self.request.set_options(self.options.to_json());
+        self.request.set_stream(true);
         let response = self
             .ollama
             .chat3(&self.request, |response| {
@@ -186,23 +190,7 @@ impl OllamaSession {
             })
             .await?;
 
-        /*
-        let req = self.request.clone();
-        let mut option = Some(req);
-
-        // TODO: Using an option seems like the best choice.
-        if let Some(r) = option.take() {
-            option = Some(r.set_stream(false));
-        }
-
-        if option.is_none() {
-            println!("it's none!");
-        }
-
-        self.request = self.request.set_stream(true);
-        */
-
-        self.request = self.request.clone().add_response(&response);
+        self.request.add_response(&response);
         Ok(response)
     }
 }

@@ -6,9 +6,8 @@ async fn main() {
     let ollama = Ollama::default();
     let question = "Why is ocean water sometimes green?";
 
-    let request = OllamaRequest2::new()
-        .set_model("gemma3:1b")
-        .set_prompt(question);
+    let mut request = OllamaRequest2::new();
+    request.set_model("gemma3:1b").set_prompt(question);
 
     println!("\n-> question: {question}\n");
 

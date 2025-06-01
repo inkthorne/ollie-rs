@@ -19,7 +19,8 @@ async fn main() {
     let mut options = OllamaOptions2::new();
     options.set_num_ctx(8192).set_num_gpu(48);
 
-    let mut request = OllamaRequest2::new()
+    let mut request = OllamaRequest2::new();
+    request
         // .model("granite3.3:8b")
         // .model("gemma3:12b")
         // .set_model("gemma3:4b")
@@ -64,7 +65,7 @@ async fn main() {
         .to_json();
 
     // Add the response and the new user message to the previous request.
-    request = request
+    request
         .add_response(&response)
         .add_message(user)
         .set_stream(false);

@@ -375,9 +375,8 @@ mod tests {
             .set_content("can you explain briefly, why is the sky blue?")
             .to_json();
 
-        let request = OllamaRequest2::new()
-            .set_model("gemma3:1b")
-            .add_message(message);
+        let mut request = OllamaRequest2::new();
+        request.set_model("gemma3:1b").add_message(message);
 
         let mut accumulated_content = String::new();
         let result = ollama
