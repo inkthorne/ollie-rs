@@ -1,5 +1,4 @@
-use crate::OllamaResponse2;
-use crate::{OllamaRequest, OllamaRequest2, OllamaResponse};
+use crate::{OllamaRequest2, OllamaResponse2};
 use std::error::Error;
 use std::net::SocketAddr;
 use std::str::FromStr;
@@ -162,81 +161,6 @@ impl Ollama {
         }
 
         Ok(response.unwrap())
-    }
-
-    /// Sends a request to a specific Ollama API endpoint and processes the response
-    ///
-    /// ## Arguments
-    ///
-    /// * `url` - The complete URL for the API endpoint
-    /// * `request` - The request containing model, prompt text, and other parameters
-    /// * `response_handler` - Callback function that processes each JSON response chunk
-    ///
-    /// ## Returns
-    ///
-    /// * `Ok(Option<OllamaResponse>)` - The final response if successful, or None if no response was received
-    /// * `Err(reqwest::Error)` - Any network or server errors that occurred
-    ///
-    /// ## Note
-    ///
-    /// This function is similar to `generate` but allows specifying the API endpoint URL directly.
-    /// It handles streaming responses by collecting chunks until completion.
-    pub async fn send_request<F>(
-        &self,
-        url: &str,
-        request: &OllamaRequest,
-        mut response_handler: F,
-    ) -> Result<Option<OllamaResponse>, reqwest::Error>
-    where
-        F: FnMut(&OllamaResponse),
-    {
-        let mut response = self
-            .http_client
-            .post(url)
-            .json(request.as_json())
-            .send()
-            .await?;
-
-        let mut last_response: Option<OllamaResponse> = Option::None;
-        let mut accumulated_content = String::new();
-
-        while let Some(http_chunk) = response.chunk().await? {
-            match OllamaResponse::try_from(&http_chunk) {
-                Ok(ollama_response) => {
-                    // Forward the response to the streaming handler.
-                    response_handler(&ollama_response);
-
-                    // Accumulate the content (if streaming).
-                    if request.stream() {
-                        ollama_response.response().map(|r| {
-                            accumulated_content.push_str(r);
-                        });
-
-                        ollama_response.content().map(|c| {
-                            accumulated_content.push_str(c);
-                        });
-                    }
-
-                    last_response = Some(ollama_response);
-                }
-                Err(_) => {
-                    continue;
-                }
-            }
-        }
-
-        // Put the accumulated content into the last response (if streaming).
-        if request.stream() {
-            if let Some(ref mut r) = last_response {
-                if r.message().is_some() {
-                    r.set_content(&accumulated_content);
-                } else {
-                    r.set_response(&accumulated_content);
-                }
-            }
-        }
-
-        Ok(last_response)
     }
 }
 
