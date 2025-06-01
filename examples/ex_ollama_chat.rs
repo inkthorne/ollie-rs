@@ -1,4 +1,4 @@
-use ollie_rs::{Ollama, OllamaMessage2, OllamaOptions2, OllamaRequest2};
+use ollie_rs::{Ollama, OllamaMessage, OllamaOptions2, OllamaRequest2};
 use std::io::Write;
 
 #[tokio::main]
@@ -6,12 +6,12 @@ async fn main() {
     let ollama = Ollama::default();
     let question = "Why is the sky blue?";
 
-    let control = OllamaMessage2::new()
+    let control = OllamaMessage::new()
         .set_role("control")
         .set_content("thinking")
         .to_json();
 
-    let user = OllamaMessage2::new()
+    let user = OllamaMessage::new()
         .set_role("user")
         .set_content(question)
         .to_json();
@@ -59,7 +59,7 @@ async fn main() {
 
     // Ask a follow-up question based on the previous response.
     let question = "Can you summarize your previous answer in 2 sentences?";
-    let user = OllamaMessage2::new()
+    let user = OllamaMessage::new()
         .set_role("user")
         .set_content(question)
         .to_json();

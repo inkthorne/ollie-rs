@@ -40,7 +40,7 @@ cargo add ollie-rs
 ### Example: Simple Chat with Ollama
 
 ```rust
-use ollie_rs::{Ollama, OllamaMessage2, OllamaOptions2, OllamaRequest2};
+use ollie_rs::{Ollama, OllamaMessage, OllamaOptions2, OllamaRequest2};
 
 #[tokio::main]
 async fn main() {
@@ -52,7 +52,7 @@ async fn main() {
     options.set_temperature(0.7);
     
     // Create a message
-    let message = OllamaMessage2::new()
+    let message = OllamaMessage::new()
         .set_role("user")
         .set_content("Why is the sky blue?")
         .to_json();
@@ -119,7 +119,7 @@ async fn main() {
 ollie-rs supports function calling (tools) with Ollama models that have this capability:
 
 ```rust
-use ollie_rs::{Ollama, OllamaFunction, OllamaFunctionParameters, OllamaMessage2, OllamaRequest2, OllamaTools};
+use ollie_rs::{Ollama, OllamaFunction, OllamaFunctionParameters, OllamaMessage, OllamaRequest2, OllamaTools};
 
 #[tokio::main]
 async fn main() {
@@ -145,7 +145,7 @@ async fn main() {
     tools.push_function(weather_function);
     
     // Create a message that might trigger tool use
-    let mut message = OllamaMessage2::new();
+    let mut message = OllamaMessage::new();
     message.set_role("user").set_content("What's the weather like in Paris?");
     
     // Create the request with tools

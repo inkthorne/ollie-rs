@@ -2,11 +2,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
 // ===
-// STRUCT: OllamaMessage2
+// STRUCT: OllamaMessage
 // ===
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct OllamaMessage2 {
+pub struct OllamaMessage {
     #[serde(skip_serializing_if = "Option::is_none")]
     role: Option<String>,
 
@@ -14,18 +14,18 @@ pub struct OllamaMessage2 {
     content: Option<String>,
 }
 
-impl OllamaMessage2 {
-    /// Creates a new, empty `OllamaMessage2`.
+impl OllamaMessage {
+    /// Creates a new, empty `OllamaMessage`.
     ///
     /// Both `role` and `content` fields are initialized to `None`.
     pub fn new() -> Self {
-        OllamaMessage2 {
+        OllamaMessage {
             role: None,
             content: None,
         }
     }
 
-    /// Deserializes an `OllamaMessage2` from a `serde_json::Value`.
+    /// Deserializes an `OllamaMessage` from a `serde_json::Value`.
     ///
     /// # Arguments
     ///
@@ -39,7 +39,7 @@ impl OllamaMessage2 {
         Ok(message)
     }
 
-    /// Serializes the `OllamaMessage2` into a `serde_json::Value`.
+    /// Serializes the `OllamaMessage` into a `serde_json::Value`.
     ///
     /// Fields that are `None` will be skipped during serialization.
     ///
@@ -63,7 +63,7 @@ impl OllamaMessage2 {
     ///
     /// * `role` - The role to set (e.g., "user", "assistant", "system").
     ///
-    /// Returns the modified `OllamaMessage2` instance.
+    /// Returns the modified `OllamaMessage` instance.
     pub fn set_role(&mut self, role: &str) -> &mut Self {
         self.role = Some(role.to_string());
         self
@@ -82,7 +82,7 @@ impl OllamaMessage2 {
     ///
     /// * `content` - The message content.
     ///
-    /// Returns the modified `OllamaMessage2` instance.
+    /// Returns the modified `OllamaMessage` instance.
     pub fn set_content(&mut self, content: &str) -> &mut Self {
         self.content = Some(content.to_string());
         self
@@ -90,7 +90,7 @@ impl OllamaMessage2 {
 }
 
 // ===
-// TESTS: OllamaMessage2
+// TESTS: OllamaMessage
 // ===
 
 #[cfg(test)]
@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let msg = OllamaMessage2::new();
+        let msg = OllamaMessage::new();
         // Check that getters return None for None fields
         assert_eq!(msg.role(), None); // Fixed: Compare with None
         // Check that content() returns None when not set
@@ -112,14 +112,14 @@ mod tests {
 
     #[test]
     fn test_set_role() {
-        let mut msg = OllamaMessage2::new();
+        let mut msg = OllamaMessage::new();
         msg.set_role("user");
         assert_eq!(msg.role(), Some("user")); // Fixed: Compare with Some("user")
     }
 
     #[test]
     fn test_set_content() {
-        let mut msg = OllamaMessage2::new();
+        let mut msg = OllamaMessage::new();
         msg.set_content("Hello");
         assert_eq!(msg.content(), Some("Hello"));
     }
@@ -130,7 +130,7 @@ mod tests {
             "role": "assistant",
             "content": "Hi there!"
         });
-        let msg_result = OllamaMessage2::from_json(json_data);
+        let msg_result = OllamaMessage::from_json(json_data);
         assert!(msg_result.is_ok());
         let msg = msg_result.unwrap();
         assert_eq!(msg.role(), Some("assistant")); // Fixed: Compare with Some("assistant")
@@ -143,7 +143,7 @@ mod tests {
             "role": 123, // Invalid type
             "content": "Hi there!"
         });
-        let msg_result = OllamaMessage2::from_json(json_data);
+        let msg_result = OllamaMessage::from_json(json_data);
         assert!(msg_result.is_err());
     }
 
@@ -154,7 +154,7 @@ mod tests {
             // Missing content
         });
         // serde_json will deserialize missing optional fields as None
-        let msg_result = OllamaMessage2::from_json(json_data);
+        let msg_result = OllamaMessage::from_json(json_data);
         assert!(msg_result.is_ok());
         let msg = msg_result.unwrap();
         assert_eq!(msg.role(), Some("user")); // Fixed: Compare with Some("user")
@@ -166,7 +166,7 @@ mod tests {
 
     #[test]
     fn test_to_json() {
-        let mut msg = OllamaMessage2::new();
+        let mut msg = OllamaMessage::new();
         msg.set_role("system")
             .set_content("You are a helpful assistant.");
         let json_val = msg.to_json();
@@ -179,7 +179,7 @@ mod tests {
 
     #[test]
     fn test_to_json_empty() {
-        let msg = OllamaMessage2::new();
+        let msg = OllamaMessage::new();
         let json_val = msg.to_json();
         // Because of skip_serializing_if, empty fields should not be present
         let expected_json = json!({});
@@ -188,13 +188,13 @@ mod tests {
 
     #[test]
     fn test_to_json_partial() {
-        let mut msg = OllamaMessage2::new();
+        let mut msg = OllamaMessage::new();
         msg.set_role("user");
         let json_val = msg.to_json();
         let expected_json = json!({ "role": "user" });
         assert_eq!(json_val, expected_json);
 
-        let mut msg = OllamaMessage2::new();
+        let mut msg = OllamaMessage::new();
         msg.set_content("test");
         let json_val = msg.to_json();
         let expected_json = json!({ "content": "test" });

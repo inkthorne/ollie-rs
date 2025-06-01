@@ -188,7 +188,7 @@ impl Default for Ollama {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{OllamaFunction, OllamaFunctionParameters, OllamaMessage2, OllamaTools};
+    use crate::{OllamaFunction, OllamaFunctionParameters, OllamaMessage, OllamaTools};
 
     /// Tests basic text generation functionality with the Ollama API
     ///
@@ -235,7 +235,7 @@ mod tests {
     #[tokio::test]
     async fn test_chat_request1() {
         let ollama = Ollama::default();
-        let message = OllamaMessage2::new()
+        let message = OllamaMessage::new()
             .set_role("user")
             .set_content("can you explain briefly, why is the sky blue?")
             .to_json();
@@ -294,7 +294,7 @@ mod tests {
         );
         temperature_function.set_parameters(params);
         tools.push_function(temperature_function);
-        let message = OllamaMessage2::new()
+        let message = OllamaMessage::new()
             .set_role("user")
             .set_content("What is the current weather in Paris?")
             .to_json();
@@ -333,7 +333,7 @@ mod tests {
         // for the OllamaRequest2/OllamaResponse2 API structure
 
         // For now, we'll create a simple follow-up message instead
-        let follow_up_message = OllamaMessage2::new()
+        let follow_up_message = OllamaMessage::new()
             .set_role("user")
             .set_content("Thank you for the weather information.")
             .to_json();

@@ -1,4 +1,4 @@
-use crate::OllamaMessage2;
+use crate::OllamaMessage;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fmt;
@@ -30,7 +30,7 @@ pub struct OllamaResponse2 {
     model: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    message: Option<OllamaMessage2>,
+    message: Option<OllamaMessage>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     prompt_eval_count: Option<u32>,
@@ -142,11 +142,11 @@ impl OllamaResponse2 {
         self.load_duration.as_ref()
     }
 
-    pub fn message(&self) -> Option<&OllamaMessage2> {
+    pub fn message(&self) -> Option<&OllamaMessage> {
         self.message.as_ref()
     }
 
-    pub fn set_message(&mut self, message: OllamaMessage2) {
+    pub fn set_message(&mut self, message: OllamaMessage) {
         self.message = Some(message);
     }
 

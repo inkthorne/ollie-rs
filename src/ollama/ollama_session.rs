@@ -1,4 +1,4 @@
-use crate::{Ollama, OllamaMessage2, OllamaOptions2, OllamaRequest2, OllamaResponse2};
+use crate::{Ollama, OllamaMessage, OllamaOptions2, OllamaRequest2, OllamaResponse2};
 use std::error::Error;
 
 // ===
@@ -92,7 +92,7 @@ impl OllamaSession {
     ///
     /// * `content` - The content of the assistant message.
     pub fn assistant(&mut self, content: &str) {
-        let message = OllamaMessage2::new()
+        let message = OllamaMessage::new()
             .set_role("assistant")
             .set_content(content)
             .to_json();
@@ -134,7 +134,7 @@ impl OllamaSession {
     ///
     /// * `content` - The content of the user message.
     pub fn user(&mut self, content: &str) {
-        let message = OllamaMessage2::new()
+        let message = OllamaMessage::new()
             .set_role("user")
             .set_content(content)
             .to_json();
@@ -151,7 +151,7 @@ impl OllamaSession {
     ///
     /// * `content` - The content of the system message.
     pub fn system(&mut self, content: &str) {
-        let message = OllamaMessage2::new()
+        let message = OllamaMessage::new()
             .set_role("system")
             .set_content(content)
             .to_json();
