@@ -1,4 +1,4 @@
-use crate::{OllamaRequest, OllamaResponse2};
+use crate::{OllamaRequest, OllamaResponse};
 use std::error::Error;
 use std::net::SocketAddr;
 use std::str::FromStr;
@@ -58,15 +58,15 @@ impl Ollama {
     ///
     /// ## Returns
     ///
-    /// * `Ok(OllamaResponse2)` - The final response if successful
+    /// * `Ok(OllamaResponse)` - The final response if successful
     /// * `Err(Box<dyn Error>)` - Any error that occurred during the request or processing
     pub async fn generate3<F>(
         &self,
         request: &OllamaRequest,
         callback: F,
-    ) -> Result<OllamaResponse2, Box<dyn Error>>
+    ) -> Result<OllamaResponse, Box<dyn Error>>
     where
-        F: FnMut(&OllamaResponse2),
+        F: FnMut(&OllamaResponse),
     {
         let url = format!("http://{}/api/generate", self.server_addr);
         self.request3(&url, request, callback).await
@@ -85,15 +85,15 @@ impl Ollama {
     ///
     /// ## Returns
     ///
-    /// * `Ok(OllamaResponse2)` - The final response if successful.
+    /// * `Ok(OllamaResponse)` - The final response if successful.
     /// * `Err(Box<dyn Error>)` - Any error that occurred during the request or processing.
     pub async fn chat3<F>(
         &self,
         request: &OllamaRequest,
         callback: F,
-    ) -> Result<OllamaResponse2, Box<dyn Error>>
+    ) -> Result<OllamaResponse, Box<dyn Error>>
     where
-        F: FnMut(&OllamaResponse2),
+        F: FnMut(&OllamaResponse),
     {
         let url = format!("http://{}/api/chat", self.server_addr);
         self.request3(&url, request, callback).await
@@ -111,16 +111,16 @@ impl Ollama {
     ///
     /// ## Returns
     ///
-    /// * `Ok(OllamaResponse2)` - The final response if successful.
+    /// * `Ok(OllamaResponse)` - The final response if successful.
     /// * `Err(Box<dyn Error>)` - Any error that occurred during the request or processing.
     pub async fn request3<F>(
         &self,
         url: &str,
         request: &OllamaRequest,
         mut callback: F,
-    ) -> Result<OllamaResponse2, Box<dyn Error>>
+    ) -> Result<OllamaResponse, Box<dyn Error>>
     where
-        F: FnMut(&OllamaResponse2),
+        F: FnMut(&OllamaResponse),
     {
         // Send a POST request to the Ollama server with the JSON payload.
         let mut http_response = self.http_client.post(url).json(request).send().await?;
@@ -131,7 +131,7 @@ impl Ollama {
             // Deserialize the chunk into a OllamaRequest object.
             let chunk_string = String::from_utf8_lossy(&chunk_bytes);
             let chunk_json = serde_json::from_str(&chunk_string)?;
-            let chunk_response = OllamaResponse2::from_json(chunk_json)?;
+            let chunk_response = OllamaResponse::from_json(chunk_json)?;
 
             // Accumulate the content text (if streaming).
             if let Some(text) = chunk_response.text() {
@@ -317,7 +317,7 @@ mod tests {
 
                 println!("---\nresponse: {}", response);
 
-                // Note: OllamaResponse2 and tool_calls functionality may not be available
+                // Note: OllamaResponse and tool_calls functionality may not be available
                 // This section would need to be adapted for the new API structure
             })
             .await;
@@ -330,7 +330,7 @@ mod tests {
         println!("Tool response: {}", accumulated_response);
 
         // Note: Tool functionality and message forwarding would need to be adapted
-        // for the OllamaRequest/OllamaResponse2 API structure
+        // for the OllamaRequest/OllamaResponse API structure
 
         // For now, we'll create a simple follow-up message instead
         let follow_up_message = OllamaMessage::new()

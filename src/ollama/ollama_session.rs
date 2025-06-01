@@ -1,4 +1,4 @@
-use crate::{Ollama, OllamaMessage, OllamaOptions, OllamaRequest, OllamaResponse2};
+use crate::{Ollama, OllamaMessage, OllamaOptions, OllamaRequest, OllamaResponse};
 use std::error::Error;
 
 // ===
@@ -171,9 +171,9 @@ impl OllamaSession {
     ///
     /// # Returns
     ///
-    /// * `Result<OllamaResponse2, Box<dyn Error>>` - The complete response from the model if successful,
+    /// * `Result<OllamaResponse, Box<dyn Error>>` - The complete response from the model if successful,
     ///   or an error if something went wrong.
-    pub async fn update<F>(&mut self, mut callback: F) -> Result<OllamaResponse2, Box<dyn Error>>
+    pub async fn update<F>(&mut self, mut callback: F) -> Result<OllamaResponse, Box<dyn Error>>
     where
         F: FnMut(&str),
     {

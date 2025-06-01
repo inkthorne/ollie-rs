@@ -4,7 +4,7 @@ use serde_json::json;
 use std::fmt;
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct OllamaResponse2 {
+pub struct OllamaResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     created_at: Option<String>,
 
@@ -45,7 +45,7 @@ pub struct OllamaResponse2 {
     total_duration: Option<u64>,
 }
 
-impl OllamaResponse2 {
+impl OllamaResponse {
     pub fn from_json(json: serde_json::Value) -> Result<Self, serde_json::Error> {
         let response = serde_json::from_value(json)?;
         Ok(response)
@@ -109,10 +109,10 @@ impl OllamaResponse2 {
 }
 
 // ===
-// PROPERTIES: OllamaResponse2
+// PROPERTIES: OllamaResponse
 // ===
 
-impl OllamaResponse2 {
+impl OllamaResponse {
     /// Returns the creation time of the response.
     pub fn created_at(&self) -> Option<&str> {
         self.created_at.as_deref()
@@ -177,11 +177,11 @@ impl OllamaResponse2 {
 }
 
 // ===
-// TRAIT: Display for OllamaResponse2
+// TRAIT: Display for OllamaResponse
 // ===
 
-impl fmt::Display for OllamaResponse2 {
-    /// Formats the OllamaResponse2 for display using pretty-printed JSON.
+impl fmt::Display for OllamaResponse {
+    /// Formats the OllamaResponse for display using pretty-printed JSON.
     ///
     /// # Arguments
     /// * `f` - The formatter to write the output to

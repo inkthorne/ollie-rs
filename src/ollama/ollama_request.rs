@@ -1,4 +1,4 @@
-use crate::OllamaResponse2;
+use crate::OllamaResponse;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::fmt;
@@ -199,7 +199,7 @@ impl OllamaRequest {
     /// # Returns
     ///
     /// The potentially modified `OllamaRequest` instance.
-    pub fn add_response(&mut self, response: &OllamaResponse2) -> &mut Self {
+    pub fn add_response(&mut self, response: &OllamaResponse) -> &mut Self {
         if let Some(message) = response.message() {
             let message_json = message.to_json();
             return self.add_message(message_json);
@@ -403,14 +403,14 @@ mod tests {
             },
             "done": true
         });
-        let response_with_message = OllamaResponse2::from_json(response_with_message_json).unwrap();
+        let response_with_message = OllamaResponse::from_json(response_with_message_json).unwrap();
         let response_without_message_json = json!({
             "model": "llama2",
             "created_at": "2023-08-04T08:52:19.385406455Z",
             "done": true
         });
         let response_without_message =
-            OllamaResponse2::from_json(response_without_message_json).unwrap();
+            OllamaResponse::from_json(response_without_message_json).unwrap();
 
         let expected_message = json!({
             "role": "assistant",
