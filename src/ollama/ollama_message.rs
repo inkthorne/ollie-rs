@@ -46,8 +46,8 @@ impl OllamaMessage2 {
     /// # Panics
     ///
     /// Panics if serialization fails, which should generally not happen for this struct.
-    pub fn to_json(self) -> JsonValue {
-        serde_json::to_value(self).unwrap()
+    pub fn to_json(&self) -> JsonValue {
+        serde_json::to_value(&self).unwrap()
     }
 
     /// Returns the role of the message.
@@ -64,7 +64,7 @@ impl OllamaMessage2 {
     /// * `role` - The role to set (e.g., "user", "assistant", "system").
     ///
     /// Returns the modified `OllamaMessage2` instance.
-    pub fn set_role(mut self, role: &str) -> Self {
+    pub fn set_role(&mut self, role: &str) -> &mut Self {
         self.role = Some(role.to_string());
         self
     }
@@ -83,7 +83,7 @@ impl OllamaMessage2 {
     /// * `content` - The message content.
     ///
     /// Returns the modified `OllamaMessage2` instance.
-    pub fn set_content(mut self, content: &str) -> Self {
+    pub fn set_content(&mut self, content: &str) -> &mut Self {
         self.content = Some(content.to_string());
         self
     }
@@ -112,13 +112,15 @@ mod tests {
 
     #[test]
     fn test_set_role() {
-        let msg = OllamaMessage2::new().set_role("user");
+        let mut msg = OllamaMessage2::new();
+        msg.set_role("user");
         assert_eq!(msg.role(), Some("user")); // Fixed: Compare with Some("user")
     }
 
     #[test]
     fn test_set_content() {
-        let msg = OllamaMessage2::new().set_content("Hello");
+        let mut msg = OllamaMessage2::new();
+        msg.set_content("Hello");
         assert_eq!(msg.content(), Some("Hello"));
     }
 
@@ -164,8 +166,8 @@ mod tests {
 
     #[test]
     fn test_to_json() {
-        let msg = OllamaMessage2::new()
-            .set_role("system")
+        let mut msg = OllamaMessage2::new();
+        msg.set_role("system")
             .set_content("You are a helpful assistant.");
         let json_val = msg.to_json();
         let expected_json = json!({
@@ -186,12 +188,14 @@ mod tests {
 
     #[test]
     fn test_to_json_partial() {
-        let msg = OllamaMessage2::new().set_role("user");
+        let mut msg = OllamaMessage2::new();
+        msg.set_role("user");
         let json_val = msg.to_json();
         let expected_json = json!({ "role": "user" });
         assert_eq!(json_val, expected_json);
 
-        let msg = OllamaMessage2::new().set_content("test");
+        let mut msg = OllamaMessage2::new();
+        msg.set_content("test");
         let json_val = msg.to_json();
         let expected_json = json!({ "content": "test" });
         assert_eq!(json_val, expected_json);

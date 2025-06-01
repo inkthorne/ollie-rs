@@ -180,7 +180,8 @@ impl Ollama {
             if let Some(r) = &mut response {
                 // If the request contains messages, set the accumulated text as the final response.
                 if let Some(message) = r.message() {
-                    let message = message.clone().set_content(&accumulated_text);
+                    let mut message = message.clone();
+                    message.set_content(&accumulated_text);
                     r.set_message(message);
                 } else {
                     // Otherwise, set the accumulated text as the final response.
