@@ -333,20 +333,19 @@ mod tests {
     #[tokio::test]
     async fn test_generate_request1() {
         let ollama = Ollama::default();
-        let mut request = OllamaRequest::new();
+        let mut request = OllamaRequest2::new();
         request
             .set_model("gemma3:1b")
             .set_prompt("What is the capital of France? respond in json")
-            .set_stream(true)
-            .set_format("json");
+            .set_stream(true);
 
         let mut accumulated_response = String::new();
         let result = ollama
-            .generate(&request, |response| {
-                response
-                    .response()
-                    .map(|r| accumulated_response.push_str(r));
-                println!("response: {}", response.as_string_pretty());
+            .generate3(&request, |response| {
+                if let Some(text) = response.text() {
+                    accumulated_response.push_str(text);
+                }
+                println!("response: {}", response);
             })
             .await;
 
