@@ -7,9 +7,6 @@ pub use ollama::*;
 pub mod option;
 pub use option::*;
 
-pub mod request;
-pub use request::*;
-
 pub mod response;
 pub use response::*;
 
