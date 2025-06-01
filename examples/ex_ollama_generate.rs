@@ -1,4 +1,4 @@
-use ollie_rs::{Ollama, OllamaRequest2};
+use ollie_rs::{Ollama, OllamaRequest};
 use std::io::Write;
 
 #[tokio::main]
@@ -6,7 +6,7 @@ async fn main() {
     let ollama = Ollama::default();
     let question = "Why is ocean water sometimes green?";
 
-    let mut request = OllamaRequest2::new();
+    let mut request = OllamaRequest::new();
     request.set_model("gemma3:1b").set_prompt(question);
 
     println!("\n-> question: {question}\n");

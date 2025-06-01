@@ -1,4 +1,4 @@
-use crate::{Ollama, OllamaMessage, OllamaOptions, OllamaRequest2, OllamaResponse2};
+use crate::{Ollama, OllamaMessage, OllamaOptions, OllamaRequest, OllamaResponse2};
 use std::error::Error;
 
 // ===
@@ -11,7 +11,7 @@ use std::error::Error;
 /// keeping track of the message history for context in future exchanges.
 pub struct OllamaSession {
     ollama: Ollama,
-    request: OllamaRequest2,
+    request: OllamaRequest,
     options: OllamaOptions,
 }
 
@@ -48,7 +48,7 @@ impl OllamaSession {
     ///
     /// A new `OllamaSession` instance configured to use the specified model with the local server.
     pub fn local(model: &str) -> Self {
-        let mut request = OllamaRequest2::new();
+        let mut request = OllamaRequest::new();
         request.set_model(model);
 
         let ollama = Ollama::default();
@@ -71,7 +71,7 @@ impl OllamaSession {
     ///
     /// A new `OllamaChat` instance configured to use the specified model.
     pub fn remote(model: &str, server_address: &str) -> Self {
-        let mut request = OllamaRequest2::new();
+        let mut request = OllamaRequest::new();
         request.set_model(model);
 
         let ollama = Ollama::new(server_address);

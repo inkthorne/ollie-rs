@@ -1,4 +1,4 @@
-use crate::{OllamaRequest2, OllamaResponse2};
+use crate::{OllamaRequest, OllamaResponse2};
 use std::error::Error;
 use std::net::SocketAddr;
 use std::str::FromStr;
@@ -53,7 +53,7 @@ impl Ollama {
     ///
     /// ## Arguments
     ///
-    /// * `request` - An `OllamaRequest2` object containing the model, prompt, and other generation parameters
+    /// * `request` - An `OllamaRequest` object containing the model, prompt, and other generation parameters
     /// * `callback` - A function that will be called with each response chunk as it arrives
     ///
     /// ## Returns
@@ -62,7 +62,7 @@ impl Ollama {
     /// * `Err(Box<dyn Error>)` - Any error that occurred during the request or processing
     pub async fn generate3<F>(
         &self,
-        request: &OllamaRequest2,
+        request: &OllamaRequest,
         callback: F,
     ) -> Result<OllamaResponse2, Box<dyn Error>>
     where
@@ -72,7 +72,7 @@ impl Ollama {
         self.request3(&url, request, callback).await
     }
 
-    /// Sends a chat request using an OllamaRequest2 object and processes response chunks with a callback.
+    /// Sends a chat request using an OllamaRequest object and processes response chunks with a callback.
     ///
     /// This method sends a chat request to the Ollama server and processes each response chunk
     /// through the provided callback function. Unlike `chat2`, this method handles the chunked
@@ -80,7 +80,7 @@ impl Ollama {
     ///
     /// ## Arguments
     ///
-    /// * `request` - An `OllamaRequest2` object containing the model, messages, and other chat parameters.
+    /// * `request` - An `OllamaRequest` object containing the model, messages, and other chat parameters.
     /// * `callback` - A function that will be called with each response chunk as it arrives.
     ///
     /// ## Returns
@@ -89,7 +89,7 @@ impl Ollama {
     /// * `Err(Box<dyn Error>)` - Any error that occurred during the request or processing.
     pub async fn chat3<F>(
         &self,
-        request: &OllamaRequest2,
+        request: &OllamaRequest,
         callback: F,
     ) -> Result<OllamaResponse2, Box<dyn Error>>
     where
@@ -106,7 +106,7 @@ impl Ollama {
     /// ## Arguments
     ///
     /// * `url` - The target URL for the POST request.
-    /// * `request` - An `OllamaRequest2` object containing the request parameters.
+    /// * `request` - An `OllamaRequest` object containing the request parameters.
     /// * `callback` - A function that will be called with each response chunk as it arrives.
     ///
     /// ## Returns
@@ -116,7 +116,7 @@ impl Ollama {
     pub async fn request3<F>(
         &self,
         url: &str,
-        request: &OllamaRequest2,
+        request: &OllamaRequest,
         mut callback: F,
     ) -> Result<OllamaResponse2, Box<dyn Error>>
     where
@@ -200,7 +200,7 @@ mod tests {
     #[tokio::test]
     async fn test_generate_request1() {
         let ollama = Ollama::default();
-        let mut request = OllamaRequest2::new();
+        let mut request = OllamaRequest::new();
         request
             .set_model("gemma3:1b")
             .set_prompt("What is the capital of France? respond in json")
@@ -240,7 +240,7 @@ mod tests {
             .set_content("can you explain briefly, why is the sky blue?")
             .to_json();
 
-        let mut request = OllamaRequest2::new();
+        let mut request = OllamaRequest::new();
         request.set_model("gemma3:1b").add_message(message);
 
         let mut accumulated_content = String::new();
@@ -300,7 +300,7 @@ mod tests {
             .to_json();
 
         // Create the request with a prompt that would trigger tool usage
-        let mut request = OllamaRequest2::new();
+        let mut request = OllamaRequest::new();
         request
             .set_model("llama3.2")
             .set_stream(false)
@@ -330,7 +330,7 @@ mod tests {
         println!("Tool response: {}", accumulated_response);
 
         // Note: Tool functionality and message forwarding would need to be adapted
-        // for the OllamaRequest2/OllamaResponse2 API structure
+        // for the OllamaRequest/OllamaResponse2 API structure
 
         // For now, we'll create a simple follow-up message instead
         let follow_up_message = OllamaMessage::new()

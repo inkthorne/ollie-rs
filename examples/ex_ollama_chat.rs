@@ -1,4 +1,4 @@
-use ollie_rs::{Ollama, OllamaMessage, OllamaOptions, OllamaRequest2};
+use ollie_rs::{Ollama, OllamaMessage, OllamaOptions, OllamaRequest};
 use std::io::Write;
 
 #[tokio::main]
@@ -19,7 +19,7 @@ async fn main() {
     let mut options = OllamaOptions::new();
     options.set_num_ctx(8192).set_num_gpu(48);
 
-    let mut request = OllamaRequest2::new();
+    let mut request = OllamaRequest::new();
     request
         // .model("granite3.3:8b")
         // .model("gemma3:12b")
