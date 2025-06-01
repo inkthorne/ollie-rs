@@ -40,7 +40,7 @@ cargo add ollie-rs
 ### Example: Simple Chat with Ollama
 
 ```rust
-use ollie_rs::{Ollama, OllamaMessage, OllamaOptions2, OllamaRequest2};
+use ollie_rs::{Ollama, OllamaMessage, OllamaOptions, OllamaRequest2};
 
 #[tokio::main]
 async fn main() {
@@ -48,7 +48,7 @@ async fn main() {
     let ollama = Ollama::default();
     
     // Optional: Configure parameters
-    let mut options = OllamaOptions2::new();
+    let mut options = OllamaOptions::new();
     options.set_temperature(0.7);
     
     // Create a message

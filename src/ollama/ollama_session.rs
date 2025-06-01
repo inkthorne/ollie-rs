@@ -1,4 +1,4 @@
-use crate::{Ollama, OllamaMessage, OllamaOptions2, OllamaRequest2, OllamaResponse2};
+use crate::{Ollama, OllamaMessage, OllamaOptions, OllamaRequest2, OllamaResponse2};
 use std::error::Error;
 
 // ===
@@ -12,7 +12,7 @@ use std::error::Error;
 pub struct OllamaSession {
     ollama: Ollama,
     request: OllamaRequest2,
-    options: OllamaOptions2,
+    options: OllamaOptions,
 }
 
 impl OllamaSession {
@@ -56,7 +56,7 @@ impl OllamaSession {
         OllamaSession {
             ollama,
             request,
-            options: OllamaOptions2::new(),
+            options: OllamaOptions::new(),
         }
     }
 
@@ -79,7 +79,7 @@ impl OllamaSession {
         OllamaSession {
             ollama,
             request,
-            options: OllamaOptions2::new(),
+            options: OllamaOptions::new(),
         }
     }
 
@@ -120,8 +120,8 @@ impl OllamaSession {
     ///
     /// # Returns
     ///
-    /// A mutable reference to the `OllamaOptions2` instance.
-    pub fn options(&mut self) -> &mut OllamaOptions2 {
+    /// A mutable reference to the `OllamaOptions` instance.
+    pub fn options(&mut self) -> &mut OllamaOptions {
         &mut self.options
     }
 

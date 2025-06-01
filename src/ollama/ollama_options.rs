@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
 #[derive(Serialize, Deserialize)]
-pub struct OllamaOptions2 {
+pub struct OllamaOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     num_ctx: Option<u32>,
 
@@ -16,15 +16,15 @@ pub struct OllamaOptions2 {
     temperature: Option<f32>,
 }
 
-impl OllamaOptions2 {
-    /// Creates a new `OllamaOptions2` instance with all options set to `None`.
+impl OllamaOptions {
+    /// Creates a new `OllamaOptions` instance with all options set to `None`.
     ///
     /// # Examples
     ///
     /// ```
-    /// use ollie_rs::OllamaOptions2;
+    /// use ollie_rs::OllamaOptions;
     ///
-    /// let options = OllamaOptions2::new();
+    /// let options = OllamaOptions::new();
     /// ```
     pub fn new() -> Self {
         Self {
@@ -35,7 +35,7 @@ impl OllamaOptions2 {
         }
     }
 
-    /// Deserializes an `OllamaOptions2` from a `serde_json::Value`.
+    /// Deserializes an `OllamaOptions` from a `serde_json::Value`.
     ///
     /// # Arguments
     ///
@@ -44,13 +44,13 @@ impl OllamaOptions2 {
     /// # Returns
     ///
     /// A `Result` containing either:
-    /// - `Ok(Self)` - Successfully deserialized OllamaOptions2 instance
+    /// - `Ok(Self)` - Successfully deserialized OllamaOptions instance
     /// - `Err(serde_json::Error)` - If deserialization fails
     ///
     /// # Examples
     ///
     /// ```
-    /// use ollie_rs::OllamaOptions2;
+    /// use ollie_rs::OllamaOptions;
     /// use serde_json::json;
     ///
     /// let json_data = json!({
@@ -58,7 +58,7 @@ impl OllamaOptions2 {
     ///     "temperature": 0.8
     /// });
     ///
-    /// let options = OllamaOptions2::from_json(json_data).unwrap();
+    /// let options = OllamaOptions::from_json(json_data).unwrap();
     /// assert_eq!(options.num_ctx(), Some(4096));
     /// assert_eq!(options.temperature(), Some(0.8));
     /// ```
@@ -67,7 +67,7 @@ impl OllamaOptions2 {
         Ok(options)
     }
 
-    /// Converts this `OllamaOptions2` instance to a `serde_json::Value`.
+    /// Converts this `OllamaOptions` instance to a `serde_json::Value`.
     ///
     /// This method serializes the options into a JSON value, skipping any fields
     /// that are set to `None`.
@@ -79,10 +79,10 @@ impl OllamaOptions2 {
     /// # Examples
     ///
     /// ```
-    /// use ollie_rs::OllamaOptions2;
+    /// use ollie_rs::OllamaOptions;
     /// use serde_json::json;
     ///
-    /// let mut options = OllamaOptions2::new();
+    /// let mut options = OllamaOptions::new();
     /// options.set_num_ctx(2048).set_temperature(0.5);
     ///
     /// let json_val = options.to_json();
@@ -118,9 +118,9 @@ impl OllamaOptions2 {
     /// # Examples
     ///
     /// ```
-    /// use ollie_rs::OllamaOptions2;
+    /// use ollie_rs::OllamaOptions;
     ///
-    /// let mut options = OllamaOptions2::new();
+    /// let mut options = OllamaOptions::new();
     /// options.set_num_ctx(2048);
     /// assert_eq!(options.num_ctx(), Some(2048));
     /// ```
@@ -151,9 +151,9 @@ impl OllamaOptions2 {
     /// # Examples
     ///
     /// ```
-    /// use ollie_rs::OllamaOptions2;
+    /// use ollie_rs::OllamaOptions;
     ///
-    /// let mut options = OllamaOptions2::new();
+    /// let mut options = OllamaOptions::new();
     /// options.set_num_gpu(1);
     /// assert_eq!(options.num_gpu(), Some(1));
     /// ```
@@ -184,9 +184,9 @@ impl OllamaOptions2 {
     /// # Examples
     ///
     /// ```
-    /// use ollie_rs::OllamaOptions2;
+    /// use ollie_rs::OllamaOptions;
     ///
-    /// let mut options = OllamaOptions2::new();
+    /// let mut options = OllamaOptions::new();
     /// options.set_num_predict(100);
     /// assert_eq!(options.num_predict(), Some(100));
     /// ```
@@ -218,9 +218,9 @@ impl OllamaOptions2 {
     /// # Examples
     ///
     /// ```
-    /// use ollie_rs::OllamaOptions2;
+    /// use ollie_rs::OllamaOptions;
     ///
-    /// let mut options = OllamaOptions2::new();
+    /// let mut options = OllamaOptions::new();
     /// options.set_temperature(0.7);
     /// assert_eq!(options.temperature(), Some(0.7));
     /// ```
@@ -231,7 +231,7 @@ impl OllamaOptions2 {
 }
 
 // ===
-// TESTS: OllamaOptions2
+// TESTS: OllamaOptions
 // ===
 
 #[cfg(test)]
@@ -241,7 +241,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let options = OllamaOptions2::new();
+        let options = OllamaOptions::new();
         // Check internal state is None
         assert!(options.num_ctx.is_none());
         assert!(options.num_gpu.is_none());
@@ -251,7 +251,7 @@ mod tests {
 
     #[test]
     fn test_accessors() {
-        let mut options = OllamaOptions2::new();
+        let mut options = OllamaOptions::new();
         options
             .set_num_ctx(2048)
             .set_num_gpu(1)
@@ -272,7 +272,7 @@ mod tests {
             "num_predict": 256,
             "temperature": 0.8
         });
-        let options_result = OllamaOptions2::from_json(json_data);
+        let options_result = OllamaOptions::from_json(json_data);
         assert!(options_result.is_ok());
         let options = options_result.unwrap();
         assert_eq!(options.num_ctx(), Some(4096));
@@ -287,7 +287,7 @@ mod tests {
             "num_ctx": "invalid", // String instead of u32
             "temperature": 0.8
         });
-        let options_result = OllamaOptions2::from_json(json_data);
+        let options_result = OllamaOptions::from_json(json_data);
         assert!(options_result.is_err());
     }
 
@@ -299,7 +299,7 @@ mod tests {
             // Missing other fields
         });
 
-        let options_result = OllamaOptions2::from_json(json_data);
+        let options_result = OllamaOptions::from_json(json_data);
         assert!(options_result.is_ok());
 
         let options = options_result.unwrap();
@@ -311,7 +311,7 @@ mod tests {
 
     #[test]
     fn test_to_json() {
-        let mut options = OllamaOptions2::new();
+        let mut options = OllamaOptions::new();
         options.set_num_ctx(2048).set_temperature(0.7);
 
         let json_val = options.to_json();
@@ -331,7 +331,7 @@ mod tests {
 
     #[test]
     fn test_to_json_empty() {
-        let options = OllamaOptions2::new();
+        let options = OllamaOptions::new();
         let json_val = options.to_json();
         // Because of skip_serializing_if, empty fields should not be present
         let expected_json = json!({});
