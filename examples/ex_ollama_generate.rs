@@ -12,7 +12,7 @@ async fn main() {
     println!("\n-> question: {question}\n");
 
     let result = ollama
-        .generate3(&request, |response| {
+        .generate(&request, |response| {
             // Print the error message, if any.
             if let Some(err) = response.error() {
                 eprintln!("-> error: {}", err);

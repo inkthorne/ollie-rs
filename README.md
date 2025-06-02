@@ -66,7 +66,7 @@ async fn main() {
     
     // Send the chat request and handle the response
     ollama
-        .chat3(&request, |response| {
+        .chat(&request, |response| {
             // Print each chunk as it arrives
             if let Some(text) = response.text() {
                 print!("{}", text);
@@ -156,7 +156,7 @@ async fn main() {
         .add_message(&message);
     
     // Handle the response
-    ollama.chat3(&request, |response| {
+    ollama.chat(&request, |response| {
         // Process tool calls or regular responses
         if let Some(message) = response.message() {
             if let Some(tool_calls) = message.tool_calls() {

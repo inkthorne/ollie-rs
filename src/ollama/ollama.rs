@@ -60,7 +60,7 @@ impl Ollama {
     ///
     /// * `Ok(OllamaResponse)` - The final response if successful
     /// * `Err(Box<dyn Error>)` - Any error that occurred during the request or processing
-    pub async fn generate3<F>(
+    pub async fn generate<F>(
         &self,
         request: &OllamaRequest,
         callback: F,
@@ -69,7 +69,7 @@ impl Ollama {
         F: FnMut(&OllamaResponse),
     {
         let url = format!("http://{}/api/generate", self.server_addr);
-        self.request3(&url, request, callback).await
+        self.request(&url, request, callback).await
     }
 
     /// Sends a chat request using an OllamaRequest object and processes response chunks with a callback.
@@ -87,7 +87,7 @@ impl Ollama {
     ///
     /// * `Ok(OllamaResponse)` - The final response if successful.
     /// * `Err(Box<dyn Error>)` - Any error that occurred during the request or processing.
-    pub async fn chat3<F>(
+    pub async fn chat<F>(
         &self,
         request: &OllamaRequest,
         callback: F,
@@ -96,12 +96,12 @@ impl Ollama {
         F: FnMut(&OllamaResponse),
     {
         let url = format!("http://{}/api/chat", self.server_addr);
-        self.request3(&url, request, callback).await
+        self.request(&url, request, callback).await
     }
 
     /// Sends an HTTP POST request with a JSON payload and processes the response with a callback.
     ///
-    /// This is a helper function used by `generate3` and `chat3`.
+    /// This is a helper function used by `generate` and `chat`.
     ///
     /// ## Arguments
     ///
@@ -113,7 +113,7 @@ impl Ollama {
     ///
     /// * `Ok(OllamaResponse)` - The final response if successful.
     /// * `Err(Box<dyn Error>)` - Any error that occurred during the request or processing.
-    pub async fn request3<F>(
+    pub async fn request<F>(
         &self,
         url: &str,
         request: &OllamaRequest,
@@ -208,7 +208,7 @@ mod tests {
 
         let mut accumulated_response = String::new();
         let result = ollama
-            .generate3(&request, |response| {
+            .generate(&request, |response| {
                 if let Some(text) = response.text() {
                     accumulated_response.push_str(text);
                 }
@@ -245,7 +245,7 @@ mod tests {
 
         let mut accumulated_content = String::new();
         let result = ollama
-            .chat3(&request, |response| {
+            .chat(&request, |response| {
                 // Append response content to accumulated content
                 if let Some(text) = response.text() {
                     accumulated_content.push_str(text);
@@ -310,7 +310,7 @@ mod tests {
         // Generate a response using the request with tools
         let mut accumulated_response = String::new();
         let result = ollama
-            .chat3(&request, |response| {
+            .chat(&request, |response| {
                 if let Some(text) = response.text() {
                     accumulated_response.push_str(text);
                 }
@@ -342,7 +342,7 @@ mod tests {
         println!("---\n2nd request: {}", request); // Generate a 2nd response using context from the tool
         let mut accumulated_response = String::new();
         let result = ollama
-            .chat3(&request, |response| {
+            .chat(&request, |response| {
                 if let Some(text) = response.text() {
                     accumulated_response.push_str(text);
                 }

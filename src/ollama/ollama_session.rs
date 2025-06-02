@@ -182,7 +182,7 @@ impl OllamaSession {
         self.request.set_stream(true);
         let response = self
             .ollama
-            .chat3(&self.request, |response| {
+            .chat(&self.request, |response| {
                 // Extract the response content and pass it to the callback, if available.
                 if let Some(content) = response.text() {
                     callback(content);

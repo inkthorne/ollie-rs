@@ -33,7 +33,7 @@ async fn main() {
 
     // Send the chat request.
     let result = ollama
-        .chat3(&request, |response| {
+        .chat(&request, |response| {
             // Print the error message, if any.
             if let Some(err) = response.error() {
                 eprintln!("-> error: {}", err);
@@ -74,7 +74,7 @@ async fn main() {
 
     // Send the 2nd chat request.
     let result = ollama
-        .chat3(&request, |response| {
+        .chat(&request, |response| {
             // Print the error message, if any.
             if let Some(err) = response.error() {
                 eprintln!("-> error: {}", err);
