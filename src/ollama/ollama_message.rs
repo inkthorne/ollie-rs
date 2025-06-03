@@ -1,3 +1,4 @@
+use crate::xml_util::XmlUtil;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
@@ -75,7 +76,6 @@ impl OllamaMessage {
     pub fn content(&self) -> Option<&str> {
         self.content.as_deref()
     }
-
     /// Sets the content of the message.
     ///
     /// # Arguments
@@ -86,6 +86,28 @@ impl OllamaMessage {
     pub fn set_content(&mut self, content: &str) -> &mut Self {
         self.content = Some(content.to_string());
         self
+    }
+
+    /// Creates a clone of the OllamaMessage with <think></think> tags and their content removed.
+    ///
+    /// Uses XmlUtil::remove_tag() to remove the <think></think> tags from the content field.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(OllamaMessage)` with a clone of the message with thinking tags removed,
+    /// or `None` if no removal occurred because the tag did not exist.
+    pub fn remove_thinking(&self) -> Option<OllamaMessage> {
+        // If there's no content, return None
+        let content_str = self.content.as_ref()?;
+
+        // Try to remove thinking tags
+        let cleaned_content = XmlUtil::remove_tag(content_str, "think")?;
+
+        // Create a clone with the cleaned content
+        Some(OllamaMessage {
+            role: self.role.clone(),
+            content: Some(cleaned_content),
+        })
     }
 }
 
@@ -185,7 +207,6 @@ mod tests {
         let expected_json = json!({});
         assert_eq!(json_val, expected_json);
     }
-
     #[test]
     fn test_to_json_partial() {
         let mut msg = OllamaMessage::new();
@@ -199,5 +220,64 @@ mod tests {
         let json_val = msg.to_json();
         let expected_json = json!({ "content": "test" });
         assert_eq!(json_val, expected_json);
+    }
+
+    #[test]
+    fn test_remove_thinking_with_think_tags() {
+        let mut msg = OllamaMessage::new();
+        msg.set_role("assistant").set_content(
+            "Here's my response. <think>Let me think about this...</think> The answer is 42.",
+        );
+
+        let result = msg.remove_thinking();
+        assert!(result.is_some());
+        let cleaned_msg = result.unwrap();
+        assert_eq!(cleaned_msg.role(), Some("assistant"));
+        assert_eq!(
+            cleaned_msg.content(),
+            Some("Here's my response.  The answer is 42.")
+        );
+    }
+
+    #[test]
+    fn test_remove_thinking_no_think_tags() {
+        let mut msg = OllamaMessage::new();
+        msg.set_role("user")
+            .set_content("Just a regular message without thinking tags.");
+
+        let result = msg.remove_thinking();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_remove_thinking_empty_content() {
+        let msg = OllamaMessage::new();
+        let result = msg.remove_thinking();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_remove_thinking_multiple_tags() {
+        let mut msg = OllamaMessage::new();
+        msg.set_role("assistant").set_content(
+            "Start <think>first thought</think> middle <think>second thought</think> end.",
+        );
+
+        let result = msg.remove_thinking();
+        assert!(result.is_some());
+        let cleaned_msg = result.unwrap();
+        assert_eq!(cleaned_msg.content(), Some("Start  middle  end."));
+    }
+
+    #[test]
+    fn test_remove_thinking_with_attributes() {
+        let mut msg = OllamaMessage::new();
+        msg.set_role("assistant")
+            .set_content("Response <think type=\"analysis\">detailed thinking</think> continues.");
+
+        let result = msg.remove_thinking();
+        assert!(result.is_some());
+        let cleaned_msg = result.unwrap();
+        assert_eq!(cleaned_msg.content(), Some("Response  continues."));
     }
 }

@@ -189,8 +189,11 @@ impl OllamaRequest {
     /// Adds the message content from an Ollama response JSON to the request's messages.
     ///
     /// This method looks for a "message" field within the provided `response` JSON.
-    /// If found, its value is cloned and added to the `messages` list using `add_message`.
-    /// If the "message" field is not present, the request remains unchanged.
+    /// If found, it first attempts to remove thinking tags using `remove_thinking()`.
+    /// If thinking tags are successfully removed, the cleaned message is used;
+    /// otherwise, the original message is used. The message is then added to the
+    /// `messages` list using `add_message`. If the "message" field is not present,
+    /// the request remains unchanged.
     ///
     /// # Arguments
     ///
@@ -201,8 +204,20 @@ impl OllamaRequest {
     /// The potentially modified `OllamaRequest` instance.
     pub fn add_response(&mut self, response: &OllamaResponse) -> &mut Self {
         if let Some(message) = response.message() {
-            let message_json = message.to_json();
-            return self.add_message(message_json);
+            // Try to remove thinking tags from the message
+            let cleaned_message = message.remove_thinking();
+            match cleaned_message {
+                Some(cleaned) => {
+                    // If thinking tags were removed, use the cleaned message
+                    let message_json = cleaned.to_json();
+                    return self.add_message(message_json);
+                }
+                None => {
+                    // If no thinking tags were found, use the original message
+                    let message_json = message.to_json();
+                    return self.add_message(message_json);
+                }
+            }
         }
 
         self
@@ -459,7 +474,6 @@ mod tests {
 
         assert_eq!(req.to_json(), expected_json);
     }
-
     #[test]
     fn test_from_json_with_prompt() {
         let json_data = json!({
@@ -474,5 +488,61 @@ mod tests {
         assert!(req.messages().is_none());
         assert!(req.options().is_none());
         assert!(req.stream().is_none());
+    }
+
+    #[test]
+    fn test_add_response_with_thinking_tags() {
+        // Test that thinking tags are removed when present
+        let response_with_thinking_json = json!({
+            "model": "llama2",
+            "created_at": "2023-08-04T08:52:19.385406455Z",
+            "message": {
+                "role": "assistant",
+                "content": "Here's my response. <think>Let me think about this...</think> The answer is 42."
+            },
+            "done": true
+        });
+        let response_with_thinking =
+            OllamaResponse::from_json(response_with_thinking_json).unwrap();
+
+        let mut req = OllamaRequest::new();
+        req.add_response(&response_with_thinking);
+
+        assert!(req.messages().is_some());
+        assert_eq!(req.messages().unwrap().len(), 1);
+
+        let expected_cleaned_message = json!({
+            "role": "assistant",
+            "content": "Here's my response.  The answer is 42."
+        });
+        assert_eq!(req.messages().unwrap()[0], expected_cleaned_message);
+    }
+
+    #[test]
+    fn test_add_response_without_thinking_tags() {
+        // Test that original message is used when no thinking tags are present
+        let response_without_thinking_json = json!({
+            "model": "llama2",
+            "created_at": "2023-08-04T08:52:19.385406455Z",
+            "message": {
+                "role": "assistant",
+                "content": "Regular response without any thinking tags."
+            },
+            "done": true
+        });
+        let response_without_thinking =
+            OllamaResponse::from_json(response_without_thinking_json).unwrap();
+
+        let mut req = OllamaRequest::new();
+        req.add_response(&response_without_thinking);
+
+        assert!(req.messages().is_some());
+        assert_eq!(req.messages().unwrap().len(), 1);
+
+        let expected_original_message = json!({
+            "role": "assistant",
+            "content": "Regular response without any thinking tags."
+        });
+        assert_eq!(req.messages().unwrap()[0], expected_original_message);
     }
 }
